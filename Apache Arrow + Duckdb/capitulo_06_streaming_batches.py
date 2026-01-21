@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 02: Integração DuckDB + Arrow
+Capítulo 06: Streaming e Batches
 Curso: Apache Arrow + DuckDB
 
 Tópicos abordados:
-- Modos de integração
-- Conversões bidirecionais
-- Query em Arrow Tables
-- Schemas e metadados
-- Error handling
+- Record Batches
+- RecordBatchReader
+- Processamento incremental
+- Iteradores e geradores
+- Controle de memória
 """
 
 import sys
@@ -22,7 +22,7 @@ import numpy as np
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print("="*60)
-print(f"CAPÍTULO 02: INTEGRAÇÃO DUCKDB + ARROW")
+print(f"CAPÍTULO 06: STREAMING E BATCHES")
 print("="*60)
 
 # Dados de exemplo globais
@@ -42,46 +42,46 @@ con = duckdb.connect()
 
 
 # ==========================================
-# Tópico 1: Modos de integração
+# Tópico 1: Record Batches
 # ==========================================
-print(f"\n--- {'Modos de integração'.upper()} ---")
+print(f"\n--- {'Record Batches'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Modos de integração
+# TODO: Implementar exemplos práticos sobre Record Batches
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 2: Conversões bidirecionais
+# Tópico 2: RecordBatchReader
 # ==========================================
-print(f"\n--- {'Conversões bidirecionais'.upper()} ---")
+print(f"\n--- {'RecordBatchReader'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Conversões bidirecionais
+# TODO: Implementar exemplos práticos sobre RecordBatchReader
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 3: Query em Arrow Tables
+# Tópico 3: Processamento incremental
 # ==========================================
-print(f"\n--- {'Query em Arrow Tables'.upper()} ---")
+print(f"\n--- {'Processamento incremental'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Query em Arrow Tables
+# TODO: Implementar exemplos práticos sobre Processamento incremental
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 4: Schemas e metadados
+# Tópico 4: Iteradores e geradores
 # ==========================================
-print(f"\n--- {'Schemas e metadados'.upper()} ---")
+print(f"\n--- {'Iteradores e geradores'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Schemas e metadados
+# TODO: Implementar exemplos práticos sobre Iteradores e geradores
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 5: Error handling
+# Tópico 5: Controle de memória
 # ==========================================
-print(f"\n--- {'Error handling'.upper()} ---")
+print(f"\n--- {'Controle de memória'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Error handling
+# TODO: Implementar exemplos práticos sobre Controle de memória
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 
 print("\n" + "="*60)
-print(f"Fim do Capítulo 02")
+print(f"Fim do Capítulo 06")
 print("="*60)

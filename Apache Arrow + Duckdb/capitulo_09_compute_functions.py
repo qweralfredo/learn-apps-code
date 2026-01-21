@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 02: Integração DuckDB + Arrow
+Capítulo 09: Arrow Compute Functions
 Curso: Apache Arrow + DuckDB
 
 Tópicos abordados:
-- Modos de integração
-- Conversões bidirecionais
-- Query em Arrow Tables
-- Schemas e metadados
-- Error handling
+- Operações vetorizadas
+- String operations
+- Filtros e máscaras
+- Agregações
+- Joins
 """
 
 import sys
@@ -22,7 +22,7 @@ import numpy as np
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print("="*60)
-print(f"CAPÍTULO 02: INTEGRAÇÃO DUCKDB + ARROW")
+print(f"CAPÍTULO 09: ARROW COMPUTE FUNCTIONS")
 print("="*60)
 
 # Dados de exemplo globais
@@ -42,46 +42,46 @@ con = duckdb.connect()
 
 
 # ==========================================
-# Tópico 1: Modos de integração
+# Tópico 1: Operações vetorizadas
 # ==========================================
-print(f"\n--- {'Modos de integração'.upper()} ---")
+print(f"\n--- {'Operações vetorizadas'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Modos de integração
+# TODO: Implementar exemplos práticos sobre Operações vetorizadas
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 2: Conversões bidirecionais
+# Tópico 2: String operations
 # ==========================================
-print(f"\n--- {'Conversões bidirecionais'.upper()} ---")
+print(f"\n--- {'String operations'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Conversões bidirecionais
+# TODO: Implementar exemplos práticos sobre String operations
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 3: Query em Arrow Tables
+# Tópico 3: Filtros e máscaras
 # ==========================================
-print(f"\n--- {'Query em Arrow Tables'.upper()} ---")
+print(f"\n--- {'Filtros e máscaras'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Query em Arrow Tables
+# TODO: Implementar exemplos práticos sobre Filtros e máscaras
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 4: Schemas e metadados
+# Tópico 4: Agregações
 # ==========================================
-print(f"\n--- {'Schemas e metadados'.upper()} ---")
+print(f"\n--- {'Agregações'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Schemas e metadados
+# TODO: Implementar exemplos práticos sobre Agregações
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 5: Error handling
+# Tópico 5: Joins
 # ==========================================
-print(f"\n--- {'Error handling'.upper()} ---")
+print(f"\n--- {'Joins'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Error handling
+# TODO: Implementar exemplos práticos sobre Joins
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 
 print("\n" + "="*60)
-print(f"Fim do Capítulo 02")
+print(f"Fim do Capítulo 09")
 print("="*60)

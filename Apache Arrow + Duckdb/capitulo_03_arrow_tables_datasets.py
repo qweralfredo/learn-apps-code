@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 02: Integração DuckDB + Arrow
+Capítulo 03: Arrow Tables e Datasets
 Curso: Apache Arrow + DuckDB
 
 Tópicos abordados:
-- Modos de integração
-- Conversões bidirecionais
-- Query em Arrow Tables
-- Schemas e metadados
-- Error handling
+- Criação de Tables
+- Schemas e tipos
+- Datasets particionados
+- Leitura de Parquet
+- Filtros e projections
 """
 
 import sys
@@ -22,7 +22,7 @@ import numpy as np
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print("="*60)
-print(f"CAPÍTULO 02: INTEGRAÇÃO DUCKDB + ARROW")
+print(f"CAPÍTULO 03: ARROW TABLES E DATASETS")
 print("="*60)
 
 # Dados de exemplo globais
@@ -42,46 +42,46 @@ con = duckdb.connect()
 
 
 # ==========================================
-# Tópico 1: Modos de integração
+# Tópico 1: Criação de Tables
 # ==========================================
-print(f"\n--- {'Modos de integração'.upper()} ---")
+print(f"\n--- {'Criação de Tables'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Modos de integração
+# TODO: Implementar exemplos práticos sobre Criação de Tables
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 2: Conversões bidirecionais
+# Tópico 2: Schemas e tipos
 # ==========================================
-print(f"\n--- {'Conversões bidirecionais'.upper()} ---")
+print(f"\n--- {'Schemas e tipos'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Conversões bidirecionais
+# TODO: Implementar exemplos práticos sobre Schemas e tipos
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 3: Query em Arrow Tables
+# Tópico 3: Datasets particionados
 # ==========================================
-print(f"\n--- {'Query em Arrow Tables'.upper()} ---")
+print(f"\n--- {'Datasets particionados'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Query em Arrow Tables
+# TODO: Implementar exemplos práticos sobre Datasets particionados
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 4: Schemas e metadados
+# Tópico 4: Leitura de Parquet
 # ==========================================
-print(f"\n--- {'Schemas e metadados'.upper()} ---")
+print(f"\n--- {'Leitura de Parquet'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Schemas e metadados
+# TODO: Implementar exemplos práticos sobre Leitura de Parquet
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 5: Error handling
+# Tópico 5: Filtros e projections
 # ==========================================
-print(f"\n--- {'Error handling'.upper()} ---")
+print(f"\n--- {'Filtros e projections'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Error handling
+# TODO: Implementar exemplos práticos sobre Filtros e projections
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 
 print("\n" + "="*60)
-print(f"Fim do Capítulo 02")
+print(f"Fim do Capítulo 03")
 print("="*60)

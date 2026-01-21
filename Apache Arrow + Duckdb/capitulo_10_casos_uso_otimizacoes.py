@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 02: Integração DuckDB + Arrow
+Capítulo 10: Casos de Uso e Otimizações
 Curso: Apache Arrow + DuckDB
 
 Tópicos abordados:
-- Modos de integração
-- Conversões bidirecionais
-- Query em Arrow Tables
-- Schemas e metadados
-- Error handling
+- ETL pipelines
+- Data lake architecture
+- Incremental loading
+- Query optimization
+- Best practices
 """
 
 import sys
@@ -22,7 +22,7 @@ import numpy as np
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print("="*60)
-print(f"CAPÍTULO 02: INTEGRAÇÃO DUCKDB + ARROW")
+print(f"CAPÍTULO 10: CASOS DE USO E OTIMIZAÇÕES")
 print("="*60)
 
 # Dados de exemplo globais
@@ -42,46 +42,46 @@ con = duckdb.connect()
 
 
 # ==========================================
-# Tópico 1: Modos de integração
+# Tópico 1: ETL pipelines
 # ==========================================
-print(f"\n--- {'Modos de integração'.upper()} ---")
+print(f"\n--- {'ETL pipelines'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Modos de integração
+# TODO: Implementar exemplos práticos sobre ETL pipelines
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 2: Conversões bidirecionais
+# Tópico 2: Data lake architecture
 # ==========================================
-print(f"\n--- {'Conversões bidirecionais'.upper()} ---")
+print(f"\n--- {'Data lake architecture'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Conversões bidirecionais
+# TODO: Implementar exemplos práticos sobre Data lake architecture
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 3: Query em Arrow Tables
+# Tópico 3: Incremental loading
 # ==========================================
-print(f"\n--- {'Query em Arrow Tables'.upper()} ---")
+print(f"\n--- {'Incremental loading'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Query em Arrow Tables
+# TODO: Implementar exemplos práticos sobre Incremental loading
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 4: Schemas e metadados
+# Tópico 4: Query optimization
 # ==========================================
-print(f"\n--- {'Schemas e metadados'.upper()} ---")
+print(f"\n--- {'Query optimization'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Schemas e metadados
+# TODO: Implementar exemplos práticos sobre Query optimization
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 5: Error handling
+# Tópico 5: Best practices
 # ==========================================
-print(f"\n--- {'Error handling'.upper()} ---")
+print(f"\n--- {'Best practices'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Error handling
+# TODO: Implementar exemplos práticos sobre Best practices
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 
 print("\n" + "="*60)
-print(f"Fim do Capítulo 02")
+print(f"Fim do Capítulo 10")
 print("="*60)

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 02: Integração DuckDB + Arrow
+Capítulo 08: Integração Pandas e Polars
 Curso: Apache Arrow + DuckDB
 
 Tópicos abordados:
-- Modos de integração
-- Conversões bidirecionais
-- Query em Arrow Tables
-- Schemas e metadados
-- Error handling
+- Conversões Pandas ↔ Arrow
+- Conversões Polars ↔ Arrow
+- Interoperabilidade DuckDB
+- Otimizações de tipos
+- Pipelines híbridos
 """
 
 import sys
@@ -22,7 +22,7 @@ import numpy as np
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print("="*60)
-print(f"CAPÍTULO 02: INTEGRAÇÃO DUCKDB + ARROW")
+print(f"CAPÍTULO 08: INTEGRAÇÃO PANDAS E POLARS")
 print("="*60)
 
 # Dados de exemplo globais
@@ -42,46 +42,46 @@ con = duckdb.connect()
 
 
 # ==========================================
-# Tópico 1: Modos de integração
+# Tópico 1: Conversões Pandas ↔ Arrow
 # ==========================================
-print(f"\n--- {'Modos de integração'.upper()} ---")
+print(f"\n--- {'Conversões Pandas ↔ Arrow'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Modos de integração
+# TODO: Implementar exemplos práticos sobre Conversões Pandas ↔ Arrow
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 2: Conversões bidirecionais
+# Tópico 2: Conversões Polars ↔ Arrow
 # ==========================================
-print(f"\n--- {'Conversões bidirecionais'.upper()} ---")
+print(f"\n--- {'Conversões Polars ↔ Arrow'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Conversões bidirecionais
+# TODO: Implementar exemplos práticos sobre Conversões Polars ↔ Arrow
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 3: Query em Arrow Tables
+# Tópico 3: Interoperabilidade DuckDB
 # ==========================================
-print(f"\n--- {'Query em Arrow Tables'.upper()} ---")
+print(f"\n--- {'Interoperabilidade DuckDB'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Query em Arrow Tables
+# TODO: Implementar exemplos práticos sobre Interoperabilidade DuckDB
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 4: Schemas e metadados
+# Tópico 4: Otimizações de tipos
 # ==========================================
-print(f"\n--- {'Schemas e metadados'.upper()} ---")
+print(f"\n--- {'Otimizações de tipos'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Schemas e metadados
+# TODO: Implementar exemplos práticos sobre Otimizações de tipos
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 # ==========================================
-# Tópico 5: Error handling
+# Tópico 5: Pipelines híbridos
 # ==========================================
-print(f"\n--- {'Error handling'.upper()} ---")
+print(f"\n--- {'Pipelines híbridos'.upper()} ---")
 
-# TODO: Implementar exemplos práticos sobre Error handling
+# TODO: Implementar exemplos práticos sobre Pipelines híbridos
 # Dica: Use duckdb.query() ou funcoes do pyarrow
 
 
 print("\n" + "="*60)
-print(f"Fim do Capítulo 02")
+print(f"Fim do Capítulo 08")
 print("="*60)
