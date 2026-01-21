@@ -8,6 +8,7 @@ Configuração para Windows (UTF-8)
 
 import sys
 import io
+from decimal import Decimal
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Instalar dependências
@@ -123,7 +124,7 @@ from datetime import datetime, date
 complex_table = pa.table({
     'id': pa.array([1, 2, 3], type=pa.int32()),
     'name': pa.array(['Alice', 'Bob', 'Carol'], type=pa.string()),
-    'balance': pa.array([1234.56, 7890.12, 3456.78], type=pa.decimal128(10, 2)),
+    'balance': pa.array([Decimal('1234.56'), Decimal('7890.12'), Decimal('3456.78')], type=pa.decimal128(10, 2)),
     'birth_date': pa.array([date(1990, 1, 15), date(1985, 6, 20), date(1992, 3, 10)], type=pa.date32()),
     'is_active': pa.array([True, False, True], type=pa.bool_())
 })

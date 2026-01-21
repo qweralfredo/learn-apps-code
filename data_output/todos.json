@@ -1,0 +1,6 @@
+[
+	{"id":1,"data":"2023-01-01","produto":"Notebook","categoria":"Eletronicos","valor":3500.0,"quantidade":2,"completed":true},
+	{"id":2,"data":"2023-01-02","produto":"Mouse","categoria":"Perifericos","valor":50.0,"quantidade":10,"completed":false},
+	{"id":3,"data":"2023-01-03","produto":"Teclado","categoria":"Perifericos","valor":120.0,"quantidade":5,"completed":true},
+	{"id":4,"data":"2023-01-04","produto":"Monitor","categoria":"Eletronicos","valor":1200.0,"quantidade":3,"completed":false}
+]

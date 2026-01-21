@@ -1,476 +1,64 @@
-# -*- coding: utf-8 -*-
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-Capítulo 06: Gerenciamento de Secrets
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-import duckdb
-
-
-
-
-
-
-import pandas as pd
-
-
-
-
-
-
-import pathlib
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# SETUP E DADOS DE EXEMPLO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-print(f"--- Iniciando Capítulo 06: Gerenciamento de Secrets ---")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Conexão em memória para testes
-
-
-
-
-
-
-con = duckdb.connect(database=':memory:')
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Criação de dados mock para exemplos
-
-
-
-
-
-
-con.execute("""
-
-
-
-
-
-
-    CREATE TABLE IF NOT EXISTS vendas (
-
-
-
-
-
-
-        id INTEGER,
-
-
-
-
-
-
-        data DATE,
-
-
-
-
-
-
-        produto VARCHAR,
-
-
-
-
-
-
-        categoria VARCHAR,
-
-
-
-
-
-
-        valor DECIMAL(10,2),
-
-
-
-
-
-
-        quantidade INTEGER
-
-
-
-
-
-
-    );
-
-
-
-
-
-
-    
-
-
-
-
-
-
-    INSERT INTO vendas VALUES
-
-
-
-
-
-
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-
-
-
-
-
-
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-
-
-
-
-
-
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-
-
-
-
-
-
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-
-
-
-
-
-
-""")
-
-
-
-
-
-
-print("Dados de exemplo 'vendas' criados com sucesso.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# CONTEÚDO DO CAPÍTULO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Create Secret
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Create Secret")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Create Secret
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Persistent Secrets
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Persistent Secrets")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Persistent Secrets
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Drop Secret
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Drop Secret")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Drop Secret
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-print("\n--- Capítulo concluído com sucesso ---")
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
+"""
+Capítulo 06: Gerenciamento de Secrets
+"""
+
+import duckdb
+import pandas as pd
+
+print(f"--- Iniciando Capítulo 06: Gerenciamento de Secrets ---")
+
+con = duckdb.connect(database=':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# 1. Create Secrets using MinIO credentials
+print("\n>>> Executando: Criando Secrets")
+
+# Secret Default (No scope implies generic S3)
+con.execute("""
+    CREATE OR REPLACE SECRET s3_default (
+        TYPE S3,
+        KEY_ID 'admin',
+        SECRET 'password',
+        REGION 'us-east-1',
+        ENDPOINT 'localhost:9000',
+        URL_STYLE 'path',
+        USE_SSL false
+    );
+""")
+print("Secret 's3_default' criado.")
+
+# Secret Scoped (Hypothetical for a specific bucket 'other-bucket')
+# DuckDB supports SCOPE option to apply secret only to specific paths
+con.execute("""
+    CREATE OR REPLACE SECRET s3_restricted (
+        TYPE S3,
+        SCOPE 's3://other-bucket',
+        KEY_ID 'user2',
+        SECRET 'pass2',
+        ENDPOINT 'localhost:9000',
+        USE_SSL false
+    );
+""")
+print("Secret 's3_restricted' (Scoped) criado.")
+
+# 2. Inspect Secrets (Note: Secrets values are redacted)
+print("\n>>> Executando: Inspecionando Secrets")
+con.sql("SELECT name, type, provider, scope FROM duckdb_secrets()").show()
+
+# 3. Test Access
+print("\n>>> Executando: Teste de Acesso (Default Secret)")
+try:
+    # Should use s3_default because path matches default behavior (or lack of specific scope)
+    con.sql("SELECT count(*) FROM 's3://learn-duckdb-s3/data/vendas.csv'").show()
+except Exception as e:
+    print(f"Erro: {e}")
+
+# 4. Drop Secret
+print("\n>>> Executando: Drop Secret")
+con.execute("DROP SECRET s3_restricted")
+print("Secret 's3_restricted' removido.")
+
+con.sql("SELECT name, type, provider, scope FROM duckdb_secrets()").show()
+
+print("\n--- Capítulo concluído com sucesso ---")

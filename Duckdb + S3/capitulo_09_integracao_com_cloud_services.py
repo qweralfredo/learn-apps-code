@@ -1,413 +1,45 @@
-# -*- coding: utf-8 -*-
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-Capítulo 09: Integração com Cloud Services
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-import duckdb
-
-
-
-
-
-
-import pandas as pd
-
-
-
-
-
-
-import pathlib
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# SETUP E DADOS DE EXEMPLO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-print(f"--- Iniciando Capítulo 09: Integração com Cloud Services ---")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Conexão em memória para testes
-
-
-
-
-
-
-con = duckdb.connect(database=':memory:')
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Criação de dados mock para exemplos
-
-
-
-
-
-
-con.execute("""
-
-
-
-
-
-
-    CREATE TABLE IF NOT EXISTS vendas (
-
-
-
-
-
-
-        id INTEGER,
-
-
-
-
-
-
-        data DATE,
-
-
-
-
-
-
-        produto VARCHAR,
-
-
-
-
-
-
-        categoria VARCHAR,
-
-
-
-
-
-
-        valor DECIMAL(10,2),
-
-
-
-
-
-
-        quantidade INTEGER
-
-
-
-
-
-
-    );
-
-
-
-
-
-
-    
-
-
-
-
-
-
-    INSERT INTO vendas VALUES
-
-
-
-
-
-
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-
-
-
-
-
-
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-
-
-
-
-
-
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-
-
-
-
-
-
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-
-
-
-
-
-
-""")
-
-
-
-
-
-
-print("Dados de exemplo 'vendas' criados com sucesso.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# CONTEÚDO DO CAPÍTULO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Lambda Integration Mock
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Lambda Integration Mock")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Lambda Integration Mock
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Glue Mock
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Glue Mock")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Glue Mock
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-print("\n--- Capítulo concluído com sucesso ---")
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
+"""
+Capítulo 09: Integração com Cloud Services (Pandas/Python Integration)
+"""
+
+import duckdb
+import pandas as pd
+
+print(f"--- Iniciando Capítulo 09: Integração com Python/Pandas ---")
+
+con = duckdb.connect(database=':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Setup Credentials
+con.execute("""
+    CREATE OR REPLACE SECRET minio_secret (
+        TYPE S3,
+        KEY_ID 'admin',
+        SECRET 'password',
+        REGION 'us-east-1',
+        ENDPOINT 'localhost:9000',
+        URL_STYLE 'path',
+        USE_SSL false
+    );
+""")
+
+# 1. DuckDB Result to Pandas
+print("\n>>> Executando: DuckDB -> Pandas")
+df = con.sql("SELECT * FROM 's3://learn-duckdb-s3/data/users_001.parquet'").df()
+print("DataFrame Pandas:")
+print(df.head())
+
+# 2. Pandas to S3 (via DuckDB)
+print("\n>>> Executando: Pandas -> DuckDB -> S3")
+df['new_col'] = df['age'] * 2
+
+# Register DataFrame as Update
+con.register('df_view', df)
+con.execute("COPY df_view TO 's3://learn-duckdb-s3/data/from_pandas.parquet' (FORMAT PARQUET)")
+print("Arquivo s3://learn-duckdb-s3/data/from_pandas.parquet criado.")
+
+# Verify
+con.sql("SELECT * FROM 's3://learn-duckdb-s3/data/from_pandas.parquet'").show()
+
+print("\n--- Capítulo concluído com sucesso ---")

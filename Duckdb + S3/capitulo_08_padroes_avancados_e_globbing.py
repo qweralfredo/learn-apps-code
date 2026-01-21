@@ -1,413 +1,53 @@
-# -*- coding: utf-8 -*-
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-Capítulo 08: Padrões Avançados e Globbing
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-import duckdb
-
-
-
-
-
-
-import pandas as pd
-
-
-
-
-
-
-import pathlib
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# SETUP E DADOS DE EXEMPLO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-print(f"--- Iniciando Capítulo 08: Padrões Avançados e Globbing ---")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Conexão em memória para testes
-
-
-
-
-
-
-con = duckdb.connect(database=':memory:')
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Criação de dados mock para exemplos
-
-
-
-
-
-
-con.execute("""
-
-
-
-
-
-
-    CREATE TABLE IF NOT EXISTS vendas (
-
-
-
-
-
-
-        id INTEGER,
-
-
-
-
-
-
-        data DATE,
-
-
-
-
-
-
-        produto VARCHAR,
-
-
-
-
-
-
-        categoria VARCHAR,
-
-
-
-
-
-
-        valor DECIMAL(10,2),
-
-
-
-
-
-
-        quantidade INTEGER
-
-
-
-
-
-
-    );
-
-
-
-
-
-
-    
-
-
-
-
-
-
-    INSERT INTO vendas VALUES
-
-
-
-
-
-
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-
-
-
-
-
-
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-
-
-
-
-
-
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-
-
-
-
-
-
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-
-
-
-
-
-
-""")
-
-
-
-
-
-
-print("Dados de exemplo 'vendas' criados com sucesso.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# CONTEÚDO DO CAPÍTULO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Filename Expansion
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Filename Expansion")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Filename Expansion
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Recursive Search
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Recursive Search")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Recursive Search
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-print("\n--- Capítulo concluído com sucesso ---")
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
+"""
+Capítulo 08: Padrões Avançados e Globbing
+"""
+
+import duckdb
+
+print(f"--- Iniciando Capítulo 08: Padrões Avançados e Globbing ---")
+
+con = duckdb.connect(database=':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Setup Credentials
+con.execute("""
+    CREATE OR REPLACE SECRET minio_secret (
+        TYPE S3,
+        KEY_ID 'admin',
+        SECRET 'password',
+        REGION 'us-east-1',
+        ENDPOINT 'localhost:9000',
+        URL_STYLE 'path',
+        USE_SSL false
+    );
+""")
+
+# 1. Recursive Globbing
+print("\n>>> Executando: Recursive Globbing")
+# Might need to ensure structure exists. assuming data/*.parquet from previous chapters
+try:
+    con.sql("SELECT count(*) FROM 's3://learn-duckdb-s3/**/*.parquet'").show()
+except Exception as e:
+    print(e)
+    
+# 2. List of Files
+print("\n>>> Executando: Leitura de Lista de Arquivos")
+try:
+    con.sql("""
+        SELECT * FROM read_parquet([
+            's3://learn-duckdb-s3/data/users_001.parquet',
+            's3://learn-duckdb-s3/data/users_002.parquet'
+        ])
+    """).show()
+except Exception as e:
+    print(e)
+
+# 3. Filename expansion
+print("\n>>> Executando: Filename Expansion")
+try:
+    con.sql("SELECT filename, count(*) FROM read_parquet('s3://learn-duckdb-s3/data/*.parquet', filename=true) GROUP BY filename").show()
+except Exception as e:
+    print(e)
+
+print("\n--- Capítulo concluído com sucesso ---")

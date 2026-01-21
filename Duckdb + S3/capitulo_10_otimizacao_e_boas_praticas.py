@@ -1,476 +1,53 @@
-# -*- coding: utf-8 -*-
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-Capítulo 10: Otimização e Boas Práticas
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-import duckdb
-
-
-
-
-
-
-import pandas as pd
-
-
-
-
-
-
-import pathlib
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# SETUP E DADOS DE EXEMPLO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-print(f"--- Iniciando Capítulo 10: Otimização e Boas Práticas ---")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Conexão em memória para testes
-
-
-
-
-
-
-con = duckdb.connect(database=':memory:')
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Criação de dados mock para exemplos
-
-
-
-
-
-
-con.execute("""
-
-
-
-
-
-
-    CREATE TABLE IF NOT EXISTS vendas (
-
-
-
-
-
-
-        id INTEGER,
-
-
-
-
-
-
-        data DATE,
-
-
-
-
-
-
-        produto VARCHAR,
-
-
-
-
-
-
-        categoria VARCHAR,
-
-
-
-
-
-
-        valor DECIMAL(10,2),
-
-
-
-
-
-
-        quantidade INTEGER
-
-
-
-
-
-
-    );
-
-
-
-
-
-
-    
-
-
-
-
-
-
-    INSERT INTO vendas VALUES
-
-
-
-
-
-
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-
-
-
-
-
-
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-
-
-
-
-
-
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-
-
-
-
-
-
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-
-
-
-
-
-
-""")
-
-
-
-
-
-
-print("Dados de exemplo 'vendas' criados com sucesso.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# CONTEÚDO DO CAPÍTULO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Parallel Reading
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Parallel Reading")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Parallel Reading
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Prefetching
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Prefetching")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Prefetching
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Network Config
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Network Config")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Network Config
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-print("\n--- Capítulo concluído com sucesso ---")
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
+"""
+Capítulo 10: Otimização e Boas Práticas
+"""
+
+import duckdb
+import time
+
+print(f"--- Iniciando Capítulo 10: Otimização e Boas Práticas ---")
+
+con = duckdb.connect(database=':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Setup Credentials
+con.execute("""
+    CREATE OR REPLACE SECRET minio_secret (
+        TYPE S3,
+        KEY_ID 'admin',
+        SECRET 'password',
+        REGION 'us-east-1',
+        ENDPOINT 'localhost:9000',
+        URL_STYLE 'path',
+        USE_SSL false
+    );
+""")
+
+query = "SELECT count(*) FROM 's3://learn-duckdb-s3/data/users_*.parquet'"
+
+# 1. Without Metadata Cache (Default)
+print("\n>>> Executando: Query Sem Cache Explícito")
+start = time.time()
+con.sql(query).show()
+print(f"Tempo: {time.time() - start:.4f}s")
+
+# 2. Enable Metadata Cache
+print("\n>>> Executando: Query COM HTTP Metadata Cache")
+# DuckDB versions might vary on parameter names, but enable_http_metadata_cache is standard in recent ones
+try:
+    con.execute("SET enable_http_metadata_cache=true")
+except:
+    pass
+
+start = time.time()
+con.sql(query).show()
+print(f"Tempo: {time.time() - start:.4f}s")
+
+# 3. Object Cache
+print("\n>>> Executando: Query COM Object Cache")
+# Only relevant for persistent connections typically, but good for demo
+# con.execute("SET enable_object_cache=true") 
+# print("Object cache enabled.")
+
+print("\n--- Capítulo concluído com sucesso ---")

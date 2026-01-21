@@ -1,539 +1,61 @@
-# -*- coding: utf-8 -*-
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-Capítulo 03: Configuração Credenciais AWS
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-import duckdb
-
-
-
-
-
-
-import pandas as pd
-
-
-
-
-
-
-import pathlib
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# SETUP E DADOS DE EXEMPLO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-print(f"--- Iniciando Capítulo 03: Configuração Credenciais AWS ---")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Conexão em memória para testes
-
-
-
-
-
-
-con = duckdb.connect(database=':memory:')
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Criação de dados mock para exemplos
-
-
-
-
-
-
-con.execute("""
-
-
-
-
-
-
-    CREATE TABLE IF NOT EXISTS vendas (
-
-
-
-
-
-
-        id INTEGER,
-
-
-
-
-
-
-        data DATE,
-
-
-
-
-
-
-        produto VARCHAR,
-
-
-
-
-
-
-        categoria VARCHAR,
-
-
-
-
-
-
-        valor DECIMAL(10,2),
-
-
-
-
-
-
-        quantidade INTEGER
-
-
-
-
-
-
-    );
-
-
-
-
-
-
-    
-
-
-
-
-
-
-    INSERT INTO vendas VALUES
-
-
-
-
-
-
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-
-
-
-
-
-
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-
-
-
-
-
-
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-
-
-
-
-
-
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-
-
-
-
-
-
-""")
-
-
-
-
-
-
-print("Dados de exemplo 'vendas' criados com sucesso.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-# CONTEÚDO DO CAPÍTULO
-
-
-
-
-
-
-# ==============================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: S3 Region
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: S3 Region")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para S3 Region
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Access Key
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Access Key")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Access Key
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Secret Key
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Secret Key")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Secret Key
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-# Tópico: Session Token
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-
-
-print(f"\n>>> Executando: Session Token")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO: Implementar exemplos práticos para Session Token
-
-
-
-
-
-
-# Exemplo genérico:
-
-
-
-
-
-
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-print("\n--- Capítulo concluído com sucesso ---")
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
+"""
+Capítulo 03: Configuração Credenciais AWS (MinIO)
+"""
+
+import duckdb
+
+print(f"--- Iniciando Capítulo 03: Configuração Credenciais AWS ---")
+con = duckdb.connect(database=':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Constants for MinIO
+MINIO_ENDPOINT = "localhost:9000"
+MINIO_ACCESS_KEY = "admin"
+MINIO_SECRET_KEY = "password"
+
+# 1. Configuração Legacy (SET Variables)
+print("\n>>> Executando: Configuração Legacy (SET)")
+con.execute(f"SET s3_region='us-east-1'")
+con.execute(f"SET s3_endpoint='{MINIO_ENDPOINT}'")
+con.execute(f"SET s3_access_key_id='{MINIO_ACCESS_KEY}'")
+con.execute(f"SET s3_secret_access_key='{MINIO_SECRET_KEY}'")
+con.execute("SET s3_use_ssl='false'")
+con.execute("SET s3_url_style='path'")
+
+# Verify by listing buckets (assuming bucket 'learn-duckdb-s3' exists from ch1)
+# Note: globbing requires full path with bucket
+try:
+    print("Teste Legacy: Listando arquivos...")
+    con.sql("SELECT * FROM glob('s3://learn-duckdb-s3/data/*.csv')").show()
+except Exception as e:
+    print(f"Erro no teste Legacy: {e}")
+
+# 2. Configuração Moderna (SECRETS)
+print("\n>>> Executando: Configuração Moderna (SECRETS)")
+
+# Clear variables first to ensure we use secret
+con.execute("RESET s3_access_key_id; RESET s3_secret_access_key;")
+
+# Create Secret
+con.execute(f"""
+    CREATE OR REPLACE SECRET my_minio_secret (
+        TYPE S3,
+        KEY_ID '{MINIO_ACCESS_KEY}',
+        SECRET '{MINIO_SECRET_KEY}',
+        REGION 'us-east-1',
+        ENDPOINT '{MINIO_ENDPOINT}',
+        URL_STYLE 'path',
+        USE_SSL false
+    );
+""")
+print("Secret 'my_minio_secret' criado.")
+
+# Verify again
+try:
+    print("Teste Secret: Listando arquivos...")
+    con.sql("SELECT * FROM glob('s3://learn-duckdb-s3/data/*.csv')").show()
+except Exception as e:
+    print(f"Erro no teste Secret: {e}")
+
+print("\n--- Capítulo concluído com sucesso ---")
