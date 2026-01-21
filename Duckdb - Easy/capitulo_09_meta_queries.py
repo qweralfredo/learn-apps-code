@@ -1,68 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 09: Meta Queries
+capitulo_09_meta_queries
 """
 
+# capitulo_09_meta_queries
 import duckdb
-import pandas as pd
-import pathlib
+import os
 
-# ==============================================================================
-# SETUP E DADOS DE EXEMPLO
-# ==============================================================================
-print(f"--- Iniciando Capítulo 09: Meta Queries ---")
+# Exemplo/Bloco 1
+import duckdb
 
-# Conexão em memória para testes
-con = duckdb.connect(database=':memory:')
+con = duckdb.connect()
 
-# Criação de dados mock para exemplos
-con.execute("""
-    CREATE TABLE IF NOT EXISTS vendas (
-        id INTEGER,
-        data DATE,
-        produto VARCHAR,
-        categoria VARCHAR,
-        valor DECIMAL(10,2),
-        quantidade INTEGER
-    );
-    
-    INSERT INTO vendas VALUES
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-""")
-print("Dados de exemplo 'vendas' criados com sucesso.")
+# Carregar dados
+con.sql("CREATE TABLE sales AS SELECT * FROM 'sales.csv'")
 
-# ==============================================================================
-# CONTEÚDO DO CAPÍTULO
-# ==============================================================================
+# Ver estrutura
+print("=== ESTRUTURA ===")
+con.sql("DESCRIBE sales").show()
 
-# -----------------------------------------------------------------------------
-# Tópico: Describe Table
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Describe Table")
+# Ver estatísticas
+print("\n=== ESTATÍSTICAS ===")
+con.sql("SUMMARIZE sales").show()
 
-# TODO: Implementar exemplos práticos para Describe Table
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+# Análise customizada
+print("\n=== COLUNAS COM ALTA CARDINALIDADE ===")
+result = con.sql("""
+    SELECT column_name, approx_unique, count
+    FROM (SUMMARIZE sales)
+    WHERE approx_unique > 100
+    ORDER BY approx_unique DESC
+""").df()
 
-# -----------------------------------------------------------------------------
-# Tópico: Show Tables
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Show Tables")
+print(result)
 
-# TODO: Implementar exemplos práticos para Show Tables
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-# -----------------------------------------------------------------------------
-# Tópico: Explain Analyze
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Explain Analyze")
-
-# TODO: Implementar exemplos práticos para Explain Analyze
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-print("\n--- Capítulo concluído com sucesso ---")

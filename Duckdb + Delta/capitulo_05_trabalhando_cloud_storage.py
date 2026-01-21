@@ -1,343 +1,131 @@
 # -*- coding: utf-8 -*-
 """
-capitulo-05-trabalhando-cloud-storage
+capitulo_05_trabalhando_cloud_storage
 """
 
-# capitulo-05-trabalhando-cloud-storage
 import duckdb
 import os
+import boto3
+import shutil
+import pandas as pd
+from datetime import datetime
+from botocore.exceptions import ClientError
 
-# Exemplo/Bloco 1
-import duckdb
+# Helper injected
+def safe_install_ext(con, ext_name):
+    try:
+        con.install_extension(ext_name)
+        con.load_extension(ext_name)
+        print(f"Extension '{ext_name}' loaded.")
+        return True
+    except Exception as e:
+        print(f"Could not load extension '{ext_name}': {e}")
+        return False
 
+print("--- Iniciando Capítulo 05: Trabalhando com Cloud Storage (S3) ---")
+
+# ==============================================================================
+# SETUP Simulation (MinIO)
+# ==============================================================================
+MINIO_ENDPOINT = "http://localhost:9000"
+MINIO_ACCESS_KEY = "admin"
+MINIO_SECRET_KEY = "password"
+BUCKET_NAME = "my-data-lake"
+
+s3_client = boto3.client(
+    's3',
+    endpoint_url=MINIO_ENDPOINT,
+    aws_access_key_id=MINIO_ACCESS_KEY,
+    aws_secret_access_key=MINIO_SECRET_KEY
+)
+
+print("Configurando MinIO...")
+try:
+    s3_client.create_bucket(Bucket=BUCKET_NAME)
+except ClientError:
+    pass
+
+# Generate Local Delta/Parquet and Upload
+LOCAL_PATH = "./sales_temp"
+if os.path.exists(LOCAL_PATH):
+    shutil.rmtree(LOCAL_PATH)
+
+try:
+    from deltalake import write_deltalake
+    df_sales = pd.DataFrame({
+        'order_id': range(50),
+        'region': ['US', 'EU'] * 25,
+        'total_amount': [100.0] * 50,
+        'order_date': [datetime.now()] * 50
+    })
+    write_deltalake(LOCAL_PATH, df_sales)
+    print("Local Delta table created.")
+except ImportError:
+    print("Deltalake not installed. Creating Parquet structure.")
+    os.makedirs(LOCAL_PATH, exist_ok=True)
+    df_sales = pd.DataFrame({
+        'order_id': range(50),
+        'region': ['US', 'EU'] * 25,
+        'total_amount': [100.0] * 50,
+        'order_date': [datetime.now()] * 50
+    })
+    df_sales.to_parquet(os.path.join(LOCAL_PATH, "part-001.parquet"))
+
+# Upload to MinIO
+print("Fazendo upload para MinIO...")
+for root, dirs, files in os.walk(LOCAL_PATH):
+    for file in files:
+        local_file = os.path.join(root, file)
+        # s3://my-data-lake/delta/sales/...
+        rel_path = os.path.relpath(local_file, LOCAL_PATH)
+        s3_key = f"delta/sales/{rel_path}".replace("\\", "/") # Windows fix
+        s3_client.upload_file(local_file, BUCKET_NAME, s3_key)
+
+if os.path.exists(LOCAL_PATH):
+    shutil.rmtree(LOCAL_PATH)
+
+# ==============================================================================
+# DUCKDB
+# ==============================================================================
 con = duckdb.connect()
-con.execute("INSTALL httpfs")
-con.execute("LOAD httpfs")
+safe_install_ext(con, "httpfs")
+delta_loaded = safe_install_ext(con, "delta")
+safe_install_ext(con, "parquet")
 
-# Exemplo/Bloco 2
-import duckdb
+# Configuring Secret for MinIO (pretending to be S3)
+con.execute(f"""
+    CREATE OR REPLACE SECRET s3_secret (
+        TYPE S3,
+        KEY_ID '{MINIO_ACCESS_KEY}',
+        SECRET '{MINIO_SECRET_KEY}',
+        ENDPOINT '{MINIO_ENDPOINT.replace("http://", "")}',
+        USE_SSL 'false',
+        URL_STYLE 'path'
+    )
+""")
+print("Secret S3 configurado.")
 
-def query_delta_on_s3():
-    """
-    Consultar tabela Delta no S3 com autenticação
-    """
-    con = duckdb.connect()
+print("\n--- Consultando Tabela no S3 (MinIO) ---")
+scan_func = "delta_scan" if delta_loaded else "read_parquet"
+scan_path = f"s3://{BUCKET_NAME}/delta/sales"
+if not delta_loaded:
+    scan_path += "/**/*.parquet"
 
-    # Carregar extensões
-    con.execute("LOAD httpfs")
-    con.execute("LOAD delta")
+print(f"Strategy: {scan_func} on {scan_path}")
 
-    # Configurar credenciais S3
-    # Opção 1: Credenciais explícitas
-    con.execute("""
-        CREATE SECRET s3_secret (
-            TYPE S3,
-            KEY_ID 'YOUR_ACCESS_KEY_ID',
-            SECRET 'YOUR_SECRET_ACCESS_KEY',
-            REGION 'us-east-1'
-        )
-    """)
-
-    # Consultar tabela Delta no S3
-    result = con.execute("""
+try:
+    result = con.execute(f"""
         SELECT
             region,
             COUNT(*) as order_count,
             SUM(total_amount) as revenue
-        FROM delta_scan('s3://my-data-lake/delta/sales')
-        WHERE order_date >= '2024-01-01'
+        FROM {scan_func}('{scan_path}')
         GROUP BY region
         ORDER BY revenue DESC
-    """).fetchdf()
-
+    """).df()
+    print("Resultado:")
     print(result)
-    con.close()
-
-if __name__ == "__main__":
-    query_delta_on_s3()
-
-# Exemplo/Bloco 3
-import duckdb
-import os
-
-# Garantir que credenciais AWS estão no ambiente
-# AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (se aplicável)
-
-con = duckdb.connect()
-con.execute("LOAD httpfs")
-
-# Usar credential chain
-con.execute("""
-    CREATE SECRET (
-        TYPE S3,
-        PROVIDER credential_chain
-    )
-""")
-
-# Consultar
-df = con.execute("""
-    SELECT * FROM delta_scan('s3://my-bucket/delta-table')
-    LIMIT 100
-""").df()
-
-print(df)
-
-# Exemplo/Bloco 4
-import duckdb
-import os
-
-def query_delta_on_azure():
-    """
-    Consultar tabela Delta no Azure Blob Storage
-    """
-    con = duckdb.connect()
-
-    # Carregar extensões
-    con.execute("LOAD httpfs")
-    con.execute("LOAD delta")
-
-    # Configurar autenticação Azure
-    con.execute("""
-        CREATE SECRET azure_secret (
-            TYPE AZURE,
-            ACCOUNT_NAME 'mystorageaccount',
-            ACCOUNT_KEY 'myaccountkey'
-        )
-    """)
-
-    # Ou usar credential chain
-    # con.execute("CREATE SECRET (TYPE AZURE, PROVIDER credential_chain)")
-
-    # Consultar tabela Delta
-    result = con.execute("""
-        SELECT
-            DATE_TRUNC('month', order_date) as month,
-            COUNT(*) as orders,
-            SUM(total_amount) as revenue
-        FROM delta_scan('az://datalake/delta/sales')
-        WHERE order_date >= '2024-01-01'
-        GROUP BY 1
-        ORDER BY 1
-    """).fetchdf()
-
-    print(result)
-    con.close()
-
-if __name__ == "__main__":
-    query_delta_on_azure()
-
-# Exemplo/Bloco 5
-import duckdb
-import os
-
-# Definir variável de ambiente com caminho para service account JSON
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/path/to/service-account.json'
-
-con = duckdb.connect()
-con.execute("LOAD httpfs")
-
-con.execute("""
-    CREATE SECRET (
-        TYPE GCS,
-        PROVIDER credential_chain
-    )
-""")
-
-df = con.execute("""
-    SELECT * FROM delta_scan('gs://my-bucket/sales')
-    LIMIT 100
-""").df()
-
-# Exemplo/Bloco 6
-import duckdb
-from typing import Dict, List
-import pandas as pd
-
-class MultiCloudDeltaReader:
-    """
-    Classe para ler tabelas Delta de múltiplas clouds
-    """
-
-    def __init__(self):
-        self.con = duckdb.connect()
-        self.con.execute("LOAD httpfs")
-        self.con.execute("LOAD delta")
-
-    def setup_aws(self, access_key: str, secret_key: str, region: str = 'us-east-1'):
-        """Configurar credenciais AWS"""
-        self.con.execute(f"""
-            CREATE OR REPLACE SECRET aws_secret (
-                TYPE S3,
-                KEY_ID '{access_key}',
-                SECRET '{secret_key}',
-                REGION '{region}'
-            )
-        """)
-
-    def setup_azure(self, account_name: str, account_key: str):
-        """Configurar credenciais Azure"""
-        self.con.execute(f"""
-            CREATE OR REPLACE SECRET azure_secret (
-                TYPE AZURE,
-                ACCOUNT_NAME '{account_name}',
-                ACCOUNT_KEY '{account_key}'
-            )
-        """)
-
-    def setup_gcs_credential_chain(self):
-        """Configurar GCS via credential chain"""
-        self.con.execute("""
-            CREATE OR REPLACE SECRET gcs_secret (
-                TYPE GCS,
-                PROVIDER credential_chain
-            )
-        """)
-
-    def query_delta_table(self, path: str, query: str = None) -> pd.DataFrame:
-        """
-        Consultar tabela Delta de qualquer cloud
-
-        Args:
-            path: Caminho completo (s3://, az://, gs://, ou local)
-            query: Query SQL adicional (WHERE, ORDER BY, etc.)
-
-        Returns:
-            DataFrame com resultados
-        """
-        base_query = f"SELECT * FROM delta_scan('{path}')"
-
-        if query:
-            full_query = f"{base_query} {query}"
-        else:
-            full_query = base_query
-
-        return self.con.execute(full_query).df()
-
-    def aggregate_across_clouds(
-        self,
-        tables: Dict[str, str],
-        metric_col: str = 'amount'
-    ) -> pd.DataFrame:
-        """
-        Agregar métricas de tabelas em múltiplas clouds
-
-        Args:
-            tables: Dict com {nome: caminho}
-            metric_col: Coluna para agregar
-
-        Returns:
-            DataFrame com agregações por fonte
-        """
-        union_queries = []
-
-        for name, path in tables.items():
-            union_queries.append(f"""
-                SELECT
-                    '{name}' as source,
-                    COUNT(*) as record_count,
-                    SUM({metric_col}) as total_{metric_col},
-                    AVG({metric_col}) as avg_{metric_col}
-                FROM delta_scan('{path}')
-            """)
-
-        full_query = " UNION ALL ".join(union_queries)
-        return self.con.execute(full_query).df()
-
-    def join_cross_cloud(
-        self,
-        left_table: str,
-        right_table: str,
-        join_key: str
-    ) -> pd.DataFrame:
-        """
-        JOIN entre tabelas em diferentes clouds
-        """
-        query = f"""
-            SELECT
-                l.*,
-                r.*
-            FROM delta_scan('{left_table}') l
-            JOIN delta_scan('{right_table}') r
-                ON l.{join_key} = r.{join_key}
-        """
-        return self.con.execute(query).df()
-
-    def close(self):
-        """Fechar conexão"""
-        self.con.close()
-
-
-# Exemplo de uso
-if __name__ == "__main__":
-    reader = MultiCloudDeltaReader()
-
-    # Configurar credenciais
-    reader.setup_aws(
-        access_key='YOUR_AWS_KEY',
-        secret_key='YOUR_AWS_SECRET',
-        region='us-east-1'
-    )
-
-    reader.setup_azure(
-        account_name='yourazureaccount',
-        account_key='yourazurekey'
-    )
-
-    # Query em S3
-    aws_data = reader.query_delta_table(
-        's3://my-bucket/sales',
-        "WHERE order_date >= '2024-01-01' LIMIT 100"
-    )
-    print("AWS Data:")
-    print(aws_data.head())
-
-    # Query em Azure
-    azure_data = reader.query_delta_table(
-        'az://my-container/sales',
-        "WHERE region = 'EMEA' LIMIT 100"
-    )
-    print("\nAzure Data:")
-    print(azure_data.head())
-
-    # Agregação cross-cloud
-    aggregated = reader.aggregate_across_clouds({
-        'AWS_US': 's3://my-bucket/sales',
-        'Azure_EU': 'az://my-container/sales'
-    })
-    print("\nCross-cloud Aggregation:")
-    print(aggregated)
-
-    reader.close()
-
-# Exemplo/Bloco 7
-# Verificar configurações
-con = duckdb.connect()
-con.execute("LOAD httpfs")
-
-# Listar secrets configurados
-result = con.execute("SELECT * FROM duckdb_secrets()").df()
-print(result)
-
-# Testar conectividade básica
-try:
-    con.execute("SELECT * FROM delta_scan('s3://bucket/table') LIMIT 1")
-    print("Connection successful!")
 except Exception as e:
-    print(f"Connection failed: {e}")
+    print(f"Erro na query: {e}")
 
-# Exemplo/Bloco 8
-# Habilitar logging para debug
-import duckdb
-
-con = duckdb.connect()
-con.execute("SET enable_progress_bar=true")
-con.execute("SET enable_profiling=true")
-con.execute("SET profiling_mode='detailed'")
-
-# Executar query
-result = con.execute("SELECT * FROM delta_scan('s3://bucket/table')").df()
-
-# Ver profile
-profile = con.execute("SELECT * FROM pragma_last_profile_results()").df()
-print(profile)
-
+print("--- Fim do Capítulo 05 ---")

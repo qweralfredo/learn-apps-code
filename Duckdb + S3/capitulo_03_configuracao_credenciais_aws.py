@@ -1,61 +1,96 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 03: Configuração Credenciais AWS (MinIO)
+capitulo_03_configuracao_credenciais_aws
 """
 
 import duckdb
+import os
+import boto3
+from botocore.exceptions import ClientError
 
-print(f"--- Iniciando Capítulo 03: Configuração Credenciais AWS ---")
+# ==============================================================================
+# SETUP MINIO
+# ==============================================================================
+print(f"--- Iniciando Capítulo 03: Configuração de Credenciais ---")
+
+MINIO_ENDPOINT = "http://localhost:9000"
+MINIO_ACCESS_KEY = "admin"
+MINIO_SECRET_KEY = "password"
+BUCKET_NAME = "learn-duckdb-s3"
+
+s3_client = boto3.client(
+    's3',
+    endpoint_url=MINIO_ENDPOINT,
+    aws_access_key_id=MINIO_ACCESS_KEY,
+    aws_secret_access_key=MINIO_SECRET_KEY
+)
+try:
+    s3_client.create_bucket(Bucket=BUCKET_NAME)
+except ClientError:
+    pass
+
+# Helper to write verify file
+with open("creds.csv", "w") as f:
+    f.write("id,msg\n1,success")
+s3_client.upload_file("creds.csv", BUCKET_NAME, "creds.csv")
+os.remove("creds.csv")
+
+# ==============================================================================
+# EXEMPLOS
+# ==============================================================================
 con = duckdb.connect(database=':memory:')
 con.execute("INSTALL httpfs; LOAD httpfs;")
 
-# Constants for MinIO
-MINIO_ENDPOINT = "localhost:9000"
-MINIO_ACCESS_KEY = "admin"
-MINIO_SECRET_KEY = "password"
-
-# 1. Configuração Legacy (SET Variables)
-print("\n>>> Executando: Configuração Legacy (SET)")
-con.execute(f"SET s3_region='us-east-1'")
-con.execute(f"SET s3_endpoint='{MINIO_ENDPOINT}'")
-con.execute(f"SET s3_access_key_id='{MINIO_ACCESS_KEY}'")
-con.execute(f"SET s3_secret_access_key='{MINIO_SECRET_KEY}'")
-con.execute("SET s3_use_ssl='false'")
-con.execute("SET s3_url_style='path'")
-
-# Verify by listing buckets (assuming bucket 'learn-duckdb-s3' exists from ch1)
-# Note: globbing requires full path with bucket
-try:
-    print("Teste Legacy: Listando arquivos...")
-    con.sql("SELECT * FROM glob('s3://learn-duckdb-s3/data/*.csv')").show()
-except Exception as e:
-    print(f"Erro no teste Legacy: {e}")
-
-# 2. Configuração Moderna (SECRETS)
-print("\n>>> Executando: Configuração Moderna (SECRETS)")
-
-# Clear variables first to ensure we use secret
-con.execute("RESET s3_access_key_id; RESET s3_secret_access_key;")
-
-# Create Secret
+print("\n--- Método 1: CREATE SECRET (Explícito) ---")
 con.execute(f"""
-    CREATE OR REPLACE SECRET my_minio_secret (
-        TYPE S3,
-        KEY_ID '{MINIO_ACCESS_KEY}',
-        SECRET '{MINIO_SECRET_KEY}',
-        REGION 'us-east-1',
-        ENDPOINT '{MINIO_ENDPOINT}',
-        URL_STYLE 'path',
-        USE_SSL false
-    );
+CREATE OR REPLACE SECRET secret_explicit (
+    TYPE S3,
+    KEY_ID '{MINIO_ACCESS_KEY}',
+    SECRET '{MINIO_SECRET_KEY}',
+    REGION 'us-east-1',
+    ENDPOINT '{MINIO_ENDPOINT.replace("http://", "")}',
+    URL_STYLE 'path',
+    USE_SSL 'false'
+);
 """)
-print("Secret 'my_minio_secret' criado.")
+res = con.execute(f"SELECT * FROM 's3://{BUCKET_NAME}/creds.csv'").fetchall()
+print(f"Leitura com Secret Explícito: {res}")
 
-# Verify again
-try:
-    print("Teste Secret: Listando arquivos...")
-    con.sql("SELECT * FROM glob('s3://learn-duckdb-s3/data/*.csv')").show()
-except Exception as e:
-    print(f"Erro no teste Secret: {e}")
+print("\n--- Método 2: Variáveis de Ambiente + Credential Chain ---")
+# Limpar secrets
+con.execute("DROP SECRET IF EXISTS secret_explicit")
 
-print("\n--- Capítulo concluído com sucesso ---")
+# Definir Env Vars
+os.environ["AWS_ACCESS_KEY_ID"] = MINIO_ACCESS_KEY
+os.environ["AWS_SECRET_ACCESS_KEY"] = MINIO_SECRET_KEY
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+# Para MinIO precisamos especificar o endpoint, que normalmente não é pego auto pela env var aws padrão pelo duckdb S3 a menos que usemos S3_ENDPOINT, mas o DuckDB usa DUCKDB_... ou settings.
+# O provider CREDENTIAL_CHAIN lê AWS_... mas não endpoint customizado facilmente sem configurar secret de qualquer forma.
+# Entao vamos criar um secret que usa o PROVIDER 'env' ou 'credential_chain' mas subscreve o endpoint.
+
+con.execute(f"""
+CREATE OR REPLACE SECRET secret_from_env (
+    TYPE S3,
+    PROVIDER CREDENTIAL_CHAIN,
+    ENDPOINT '{MINIO_ENDPOINT.replace("http://", "")}',
+    URL_STYLE 'path',
+    USE_SSL 'false'
+);
+""")
+
+res = con.execute(f"SELECT * FROM 's3://{BUCKET_NAME}/creds.csv'").fetchall()
+print(f"Leitura com Env Vars: {res}")
+
+print("\n--- Método 3: Profile (Simulado via boto3 config logic) ---")
+# O provider 'config' tentaria ler ~/.aws/config. Não vamos modificar o home do usuário.
+# Mas a sintaxe seria:
+print("Exemplo de sintaxe (não executado):")
+print("""
+CREATE SECRET secret_profile (
+    TYPE S3,
+    PROVIDER CONFIG,
+    PROFILE 'my-minio-profile'
+);
+""")
+
+

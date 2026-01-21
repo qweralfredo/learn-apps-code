@@ -1,68 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 03: Importação Exportação CSV
+capitulo_03_importacao_exportacao_csv
 """
 
+# capitulo_03_importacao_exportacao_csv
 import duckdb
-import pandas as pd
-import pathlib
+import os
 
-# ==============================================================================
-# SETUP E DADOS DE EXEMPLO
-# ==============================================================================
-print(f"--- Iniciando Capítulo 03: Importação Exportação CSV ---")
+# Exemplo/Bloco 1
+import duckdb
 
-# Conexão em memória para testes
-con = duckdb.connect(database=':memory:')
+# Ler CSV como Relation
+rel = duckdb.read_csv("example.csv")
+print(rel)
 
-# Criação de dados mock para exemplos
-con.execute("""
-    CREATE TABLE IF NOT EXISTS vendas (
-        id INTEGER,
-        data DATE,
-        produto VARCHAR,
-        categoria VARCHAR,
-        valor DECIMAL(10,2),
-        quantidade INTEGER
-    );
-    
-    INSERT INTO vendas VALUES
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-""")
-print("Dados de exemplo 'vendas' criados com sucesso.")
+# Query direta
+result = duckdb.sql("SELECT * FROM 'example.csv'")
+result.show()
 
-# ==============================================================================
-# CONTEÚDO DO CAPÍTULO
-# ==============================================================================
+# Exemplo/Bloco 2
+import duckdb
 
-# -----------------------------------------------------------------------------
-# Tópico: Read CSV
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Read CSV")
+# Ler e converter para DataFrame
+df = duckdb.read_csv("example.csv").df()
 
-# TODO: Implementar exemplos práticos para Read CSV
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+# Ou diretamente
+df = duckdb.sql("SELECT * FROM 'example.csv'").df()
 
-# -----------------------------------------------------------------------------
-# Tópico: Read CSV Auto
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Read CSV Auto")
+# Exemplo/Bloco 3
+import duckdb
 
-# TODO: Implementar exemplos práticos para Read CSV Auto
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+# Executar query e salvar como CSV
+result = duckdb.sql("SELECT * FROM tbl")
+result.write_csv("out.csv")
 
-# -----------------------------------------------------------------------------
-# Tópico: Copy To CSV
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Copy To CSV")
+# Com método direto
+duckdb.sql("SELECT * FROM tbl").write_csv("out.csv")
 
-# TODO: Implementar exemplos práticos para Copy To CSV
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-print("\n--- Capítulo concluído com sucesso ---")

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-capitulo-02-injecao-sql
+capitulo_02_injecao_sql
 """
 
-# capitulo-02-injecao-sql
+# capitulo_02_injecao_sql
 import duckdb
 import os
 

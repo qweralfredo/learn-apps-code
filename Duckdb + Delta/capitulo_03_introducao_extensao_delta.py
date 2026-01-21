@@ -1,179 +1,96 @@
 # -*- coding: utf-8 -*-
 """
-capitulo-03-introducao-extensao-delta
+capitulo_03_introducao_extensao_delta
 """
 
-# capitulo-03-introducao-extensao-delta
 import duckdb
 import os
+import shutil
+
+# Helper injected
+def safe_install_ext(con, ext_name):
+    try:
+        con.install_extension(ext_name)
+        con.load_extension(ext_name)
+        print(f"Extension '{ext_name}' loaded.")
+        return True
+    except Exception as e:
+        print(f"Could not load extension '{ext_name}': {e}")
+        return False
+
+print("--- Iniciando Capítulo 03: Introdução à Extensão Delta ---")
+
+con = duckdb.connect()
+delta_loaded = safe_install_ext(con, "delta")
+safe_install_ext(con, "parquet")
 
 # Exemplo/Bloco 1
-import duckdb
-from deltalake import write_deltalake
-
-# Criar conexão DuckDB
-con = duckdb.connect()
-con.execute("INSTALL delta; LOAD delta;")
-
-# Criar DataFrame de exemplo
-df = con.execute("""
-    SELECT
-        i as id,
-        i % 10 as category,
-        i % 2 as partition_col,
-        'value-' || i as description,
-        CURRENT_DATE - (i % 100) * INTERVAL '1 day' as created_date,
-        RANDOM() * 1000 as amount
-    FROM range(0, 10000) tbl(i)
-""").df()
-
-# Escrever como tabela Delta (particionada)
-write_deltalake(
-    "./my_delta_table",
-    df,
-    partition_by=["partition_col"],
-    mode="overwrite"
-)
-
-print("Delta table created successfully!")
-
-# Ler com DuckDB
-result = con.execute("""
-    SELECT
-        partition_col,
-        COUNT(*) as total_rows,
-        AVG(amount) as avg_amount
-    FROM delta_scan('./my_delta_table')
-    GROUP BY partition_col
-    ORDER BY partition_col
-""").fetchdf()
-
-print(result)
-
-# Exemplo/Bloco 2
-from pyspark.sql import SparkSession
-
-# Criar SparkSession com Delta Lake
-spark = SparkSession.builder \
-    .appName("CreateDeltaTable") \
-    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-    .getOrCreate()
-
-# Criar DataFrame
-df = spark.range(0, 10000).selectExpr(
-    "id",
-    "id % 10 as category",
-    "id % 2 as partition_col",
-    "concat('value-', id) as description"
-)
-
-# Escrever como Delta table
-df.write \
-    .format("delta") \
-    .partitionBy("partition_col") \
-    .mode("overwrite") \
-    .save("./my_delta_table")
-
-print("Delta table created with Spark!")
-
-# Exemplo/Bloco 3
-import duckdb
-from deltalake import write_deltalake
-import pandas as pd
-from pathlib import Path
-
-def create_sample_delta_tables():
-    """
-    Criar tabelas Delta de exemplo para aprendizado
-    """
-    con = duckdb.connect()
-    con.execute("INSTALL delta; LOAD delta;")
-
-    # 1. Tabela de Clientes
-    customers_df = con.execute("""
+print("\n--- Criando Tabela Delta (via python-deltalake) ---")
+try:
+    from deltalake import write_deltalake
+    import pandas as pd
+    
+    # Criar dados de exemplo
+    df = con.execute("""
         SELECT
-            i as customer_id,
-            'Customer ' || i as customer_name,
-            ['US', 'UK', 'BR', 'JP'][i % 4 + 1] as country,
-            CURRENT_DATE - (i % 1000) * INTERVAL '1 day' as signup_date
-        FROM range(1, 1001) tbl(i)
-    """).df()
-
-    write_deltalake("./delta_tables/customers", customers_df, mode="overwrite")
-
-    # 2. Tabela de Produtos
-    products_df = con.execute("""
-        SELECT
-            i as product_id,
-            'Product ' || i as product_name,
-            ['Electronics', 'Clothing', 'Food', 'Books'][i % 4 + 1] as category,
-            10.0 + RANDOM() * 1000 as price
-        FROM range(1, 101) tbl(i)
-    """).df()
-
-    write_deltalake("./delta_tables/products", products_df, mode="overwrite")
-
-    # 3. Tabela de Vendas (particionada por data)
-    sales_df = con.execute("""
-        SELECT
-            i as order_id,
-            1 + (i % 1000) as customer_id,
-            1 + (i % 100) as product_id,
-            1 + (RANDOM() * 5)::INTEGER as quantity,
-            CURRENT_DATE - (i % 365) * INTERVAL '1 day' as order_date,
+            i as id,
+            i % 10 as category,
+            i % 2 as partition_col,
+            'value-' || i as description,
+            CURRENT_DATE - (i % 100) * INTERVAL '1 day' as created_date,
             RANDOM() * 1000 as amount
-        FROM range(1, 50001) tbl(i)
+        FROM range(0, 1000) tbl(i)
     """).df()
 
+    # Clean up previous run
+    if os.path.exists("./my_delta_table"):
+        shutil.rmtree("./my_delta_table")
+
+    # Escrever como tabela Delta (particionada)
     write_deltalake(
-        "./delta_tables/sales",
-        sales_df,
-        partition_by=["order_date"],
+        "./my_delta_table",
+        df,
+        partition_by=["partition_col"],
         mode="overwrite"
     )
+    print("Delta table created successfully at ./my_delta_table")
 
-    print("[OK] Sample Delta tables created:")
-    print("  - ./delta_tables/customers")
-    print("  - ./delta_tables/products")
-    print("  - ./delta_tables/sales (partitioned)")
+    print("\n--- Lendo Tabela Delta ---")
+    if delta_loaded:
+        result = con.execute("""
+            SELECT
+                partition_col,
+                COUNT(*) as total_rows,
+                AVG(amount) as avg_amount
+            FROM delta_scan('./my_delta_table')
+            GROUP BY partition_col
+            ORDER BY partition_col
+        """).fetchdf()
+        print("Resultado via 'delta_scan':")
+        print(result)
+    else:
+        print("Extensão 'delta' não disponível. Tentando ler como Parquet puro (fallback)...")
+        # Fallback: Read underlying parquet files
+        # Note: This is an approximation, ignores transaction log
+        result = con.execute("""
+            SELECT
+                partition_col,
+                COUNT(*) as total_rows,
+                AVG(amount) as avg_amount
+            FROM read_parquet('./my_delta_table/**/*.parquet')
+            GROUP BY partition_col
+            ORDER BY partition_col
+        """).fetchdf()
+        print("Resultado via 'read_parquet' (Aproximação):")
+        print(result)
 
-    # Verificar tabelas
-    for table in ['customers', 'products', 'sales']:
-        count = con.execute(f"""
-            SELECT COUNT(*) as total
-            FROM delta_scan('./delta_tables/{table}')
-        """).fetchone()[0]
-        print(f"  - {table}: {count:,} rows")
+except ImportError:
+    print("Biblioteca 'deltalake' não instalada. Exemplo ignorado.")
+except Exception as e:
+    print(f"Erro no exemplo 1: {e}")
 
-    con.close()
+# Clean up
+if os.path.exists("./my_delta_table"):
+    shutil.rmtree("./my_delta_table")
 
-if __name__ == "__main__":
-    create_sample_delta_tables()
-
-# Exemplo/Bloco 4
-import json
-from pathlib import Path
-
-def explore_delta_log(delta_table_path):
-    """
-    Explorar transaction log de tabela Delta
-    """
-    log_path = Path(delta_table_path) / "_delta_log"
-
-    print(f"Transaction log files in {log_path}:")
-    for log_file in sorted(log_path.glob("*.json")):
-        print(f"\n{log_file.name}:")
-        with open(log_file) as f:
-            for line in f:
-                entry = json.loads(line)
-                if 'add' in entry:
-                    print(f"  ADD: {entry['add']['path']}")
-                elif 'remove' in entry:
-                    print(f"  REMOVE: {entry['remove']['path']}")
-                elif 'metaData' in entry:
-                    print(f"  METADATA: {entry['metaData'].get('name', 'N/A')}")
-
-# Uso
-explore_delta_log("./my_delta_table")
-
+print("--- Fim do Capítulo 03 ---")
