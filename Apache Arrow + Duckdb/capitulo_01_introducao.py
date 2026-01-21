@@ -30,7 +30,7 @@ print("-"*60)
 arrow_table = pa.table({
     'id': [1, 2, 3],
     'name': ['Alice', 'Bob', 'Carol'],
-    'age': [30, 25, 35]
+    'age': pa.array([30, 25, 35], type=pa.int32())
 })
 
 print("\nArrow Table criada:")
@@ -149,9 +149,9 @@ print("\n" + "="*60)
 print("CAPÍTULO 1 CONCLUÍDO!")
 print("="*60)
 print("\nVocê aprendeu:")
-print("✅ O que é Apache Arrow e por que é importante")
-print("✅ Integração nativa DuckDB + Arrow")
-print("✅ Zero-copy reads e vantagens de performance")
-print("✅ Como criar Arrow tables")
-print("✅ Conversão entre Pandas e Arrow")
-print("✅ Tipos de dados suportados")
+print("[OK] O que é Apache Arrow e por que é importante")
+print("[OK] Integração nativa DuckDB + Arrow")
+print("[OK] Zero-copy reads e vantagens de performance")
+print("[OK] Como criar Arrow tables")
+print("[OK] Conversão entre Pandas e Arrow")
+print("[OK] Tipos de dados suportados")

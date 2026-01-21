@@ -12,6 +12,7 @@ import duckdb
 from deltalake import write_deltalake
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Criar DataFrame com dados para particionar
 df = con.execute("""
@@ -36,7 +37,7 @@ write_deltalake(
     mode="overwrite"
 )
 
-print("✓ Partitioned table created!")
+print("[OK] Partitioned table created!")
 
 # Verificar estrutura
 import os
@@ -77,6 +78,7 @@ df.write \
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Habilitar profiling
 con.execute("SET enable_profiling=true")
@@ -92,30 +94,30 @@ result = con.execute("""
 print(f"Result: {result[0]:,} rows")
 
 # Ver quais arquivos foram lidos
-profile = con.execute("PRAGMA last_profiling_output").fetchone()[0]
+profile = con.execute("-- -- -- -- -- -- -- -- PRAGMA last_profiling_output").fetchone()[0]
 print("\nProfile:")
 print(profile)
 
 # Buscar por "files read" ou "partitions scanned"
 
 # Exemplo/Bloco 4
-partition_by=["year", "month"]
-   partition_by=["date"]
+# partition_by=["year", "month"]
+#    partition_by=["date"]
 
 # Exemplo/Bloco 5
-partition_by=["region"]  # 5-10 regiões
-   partition_by=["country"]  # ~200 países
+# partition_by=["region"]  # 5-10 regiões
+#    partition_by=["country"]  # ~200 países
 
 # Exemplo/Bloco 6
-partition_by=["year", "month", "day"]
-   partition_by=["country", "state"]
+# partition_by=["year", "month", "day"]
+#    partition_by=["country", "state"]
 
 # Exemplo/Bloco 7
-partition_by=["customer_id"]  # Milhões de valores
-   partition_by=["order_id"]  # Cada valor é único
+# partition_by=["customer_id"]  # Milhões de valores
+#    partition_by=["order_id"]  # Cada valor é único
 
 # Exemplo/Bloco 8
-partition_by=["description"]  # Nunca usado em WHERE
+# partition_by=["description"]  # Nunca usado em WHERE
 
 # Exemplo/Bloco 9
 partition_by=["year", "month", "day", "hour", "minute"]  # Muito granular
@@ -128,6 +130,7 @@ def analyze_partitions(table_path: str):
     Analisar distribuição de tamanho das partições
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
 
     # Não há função direta, mas podemos usar filesystem
     import os
@@ -177,6 +180,7 @@ def measure_data_skipping(table_path: str, filter_clause: str):
     Medir efetividade de data skipping
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
     con.execute("SET enable_profiling=true")
 
     # Query com filtro
@@ -223,6 +227,7 @@ import duckdb
 from deltalake import write_deltalake
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler tabela não-particionada
 df = con.execute("""
@@ -241,13 +246,14 @@ write_deltalake(
     mode="overwrite"
 )
 
-print("✓ Table repartitioned!")
+print("[OK] Table repartitioned!")
 
 # Exemplo/Bloco 13
 # Particionamento atual: muito granular (por dia)
 # Novo particionamento: por mês
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler tabela com partições diárias
 df = con.execute("""
@@ -276,6 +282,7 @@ def create_temporal_partitioned_table():
     Criar tabela otimizada para queries temporais
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
 
     # Gerar dados para 2 anos
     df = con.execute("""
@@ -301,7 +308,7 @@ def create_temporal_partitioned_table():
         mode="overwrite"
     )
 
-    print("✓ Temporal table created with 2 years of data")
+    print("[OK] Temporal table created with 2 years of data")
     print(f"  Total rows: {len(df):,}")
     print(f"  Partitions: year × month = 24 partitions")
 
@@ -312,6 +319,7 @@ def benchmark_temporal_queries(table_path: str):
     Benchmark queries temporais
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
     queries = [
         ("Single month", "year = 2024 AND month = 1"),
         ("Quarter", "year = 2024 AND month BETWEEN 1 AND 3"),
@@ -357,6 +365,7 @@ if __name__ == "__main__":
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler tabela com deletion vectors
 # (DuckDB automaticamente aplica deletion vectors)
@@ -379,10 +388,10 @@ common_filters = {
 # partition_by=["date", "region"]
 
 # Exemplo/Bloco 17
-# ❌ Ruim: muitas partições pequenas
+# [X] Ruim: muitas partições pequenas
 partition_by=["year", "month", "day", "hour"]
 
-# ✓ Bom: partições balanceadas
+# [OK] Bom: partições balanceadas
 partition_by=["year", "month"]
 
 # Exemplo/Bloco 18

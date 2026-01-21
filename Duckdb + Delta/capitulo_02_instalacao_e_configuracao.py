@@ -158,10 +158,10 @@ if __name__ == "__main__":
 
 # Exemplo/Bloco 8
 # Instalar Jupyter
-pip install jupyter duckdb pandas
+# pip install jupyter duckdb pandas
 
 # Criar notebook
-jupyter notebook
+# jupyter notebook
 
 # Exemplo/Bloco 9
 # No notebook

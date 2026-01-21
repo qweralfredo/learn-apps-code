@@ -13,6 +13,7 @@ from deltalake import write_deltalake
 
 # Criar conexão DuckDB
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Criar DataFrame de exemplo
 df = con.execute("""
@@ -87,6 +88,7 @@ def create_sample_delta_tables():
     Criar tabelas Delta de exemplo para aprendizado
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
 
     # 1. Tabela de Clientes
     customers_df = con.execute("""
@@ -131,7 +133,7 @@ def create_sample_delta_tables():
         mode="overwrite"
     )
 
-    print("✓ Sample Delta tables created:")
+    print("[OK] Sample Delta tables created:")
     print("  - ./delta_tables/customers")
     print("  - ./delta_tables/products")
     print("  - ./delta_tables/sales (partitioned)")

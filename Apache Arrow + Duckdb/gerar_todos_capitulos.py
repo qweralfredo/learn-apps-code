@@ -360,9 +360,9 @@ output_dir.mkdir(parents=True, exist_ok=True)
 for cap in capitulos:
     # Preparar dados
     topicos = cap['topicos']
-    topicos_md = '\\n'.join([f"    \\"- {t}\\" for t in topicos])
-    topicos_resumo = '\\n'.join([f"- ✅ {t}" for t in topicos])
-    aprendizados = '\\n'.join([f'print("✅ {t}")' for t in topicos])
+    topicos_md = '\\n'.join([f"    '- {t}'" for t in topicos])
+    topicos_resumo = '\\n'.join([f"- [OK] {t}" for t in topicos])
+    aprendizados = '\\n'.join([f'print("[OK] {t}")' for t in topicos])
 
     # Python file
     py_content = python_template.format(
@@ -382,7 +382,7 @@ for cap in capitulos:
     with open(py_file, 'w', encoding='utf-8') as f:
         f.write(py_content)
 
-    print(f"✅ Criado: {py_file.name}")
+    print(f"[OK] Criado: {py_file.name}")
 
     # Notebook file
     nb_content = notebook_template.format(
@@ -398,7 +398,7 @@ for cap in capitulos:
     with open(nb_file, 'w', encoding='utf-8') as f:
         f.write(nb_content)
 
-    print(f"✅ Criado: {nb_file.name}")
+    print(f"[OK] Criado: {nb_file.name}")
 
 print("\\n" + "="*60)
 print("TODOS OS CAPÍTULOS FORAM CRIADOS!")

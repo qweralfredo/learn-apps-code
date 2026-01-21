@@ -12,6 +12,7 @@ import duckdb
 import pandas as pd
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler Delta table para Pandas
 df = con.execute("""
@@ -32,6 +33,7 @@ import duckdb
 import polars as pl
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler Delta table para Polars
 df_polars = con.execute("""
@@ -57,6 +59,7 @@ import duckdb
 import pyarrow as pa
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler Delta table para Arrow
 arrow_table = con.execute("""
@@ -76,6 +79,7 @@ def generate_sales_dashboard(delta_path: str):
     Gerar métricas de dashboard a partir de tabela Delta
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
 
     # Período de análise
     end_date = datetime.now().date()

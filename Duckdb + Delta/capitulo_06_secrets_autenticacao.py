@@ -17,6 +17,7 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = 'your_secret_key'
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 con.execute("LOAD httpfs")
 
 # Usar credential chain
@@ -38,6 +39,7 @@ import os
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/path/to/key.json'
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 con.execute("LOAD httpfs")
 
 con.execute("""
@@ -53,6 +55,7 @@ df = con.execute("SELECT * FROM delta_scan('gs://bucket/table')").df()
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Listar secrets
 secrets = con.execute("SELECT * FROM duckdb_secrets()").df()
@@ -62,6 +65,7 @@ print(secrets)
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 con.execute("CREATE SECRET (TYPE S3, PROVIDER credential_chain)")
 
 # Secret disponível
@@ -99,6 +103,7 @@ print(result)  # aws_prod está lá
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 try:
     # Criar secret temporário
@@ -176,15 +181,16 @@ def create_s3_secret_from_env(
         params += f",\n        SESSION_TOKEN '{session_token}'"
 
     con.execute(f"{secret_clause} ({params})")
-    print(f"✓ S3 secret created from environment variables")
+    print(f"[OK] S3 secret created from environment variables")
 
 # Uso
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 con.execute("LOAD httpfs")
 create_s3_secret_from_env(con, 'aws_prod')
 
 # Exemplo/Bloco 9
-# ❌ Ruim - Hardcoded
+# [X] Ruim - Hardcoded
 con.execute("""
     CREATE SECRET (
         TYPE S3,
@@ -193,7 +199,7 @@ con.execute("""
     )
 """)
 
-# ✓ Bom - Usa variáveis de ambiente
+# [OK] Bom - Usa variáveis de ambiente
 import os
 con.execute(f"""
     CREATE SECRET (
@@ -203,7 +209,7 @@ con.execute(f"""
     )
 """)
 
-# ✓ Melhor - Usa credential chain
+# [OK] Melhor - Usa credential chain
 con.execute("CREATE SECRET (TYPE S3, PROVIDER credential_chain)")
 
 # Exemplo/Bloco 10
@@ -251,7 +257,7 @@ class SecretManager:
             params += f", SCOPE '{scope}'"
 
         self.con.execute(f"{secret_clause} ({params})")
-        print(f"✓ S3 secret created: {name or 'anonymous'}")
+        print(f"[OK] S3 secret created: {name or 'anonymous'}")
 
     def create_azure_secret(
         self,
@@ -274,7 +280,7 @@ class SecretManager:
             raise ValueError("Must provide credentials or use credential chain")
 
         self.con.execute(f"{secret_clause} ({params})")
-        print(f"✓ Azure secret created: {name or 'anonymous'}")
+        print(f"[OK] Azure secret created: {name or 'anonymous'}")
 
     def list_secrets(self) -> List[Dict]:
         """Listar todos os secrets"""
@@ -286,14 +292,14 @@ class SecretManager:
     def drop_secret(self, name: str):
         """Remover secret por nome"""
         self.con.execute(f"DROP SECRET IF EXISTS {name}")
-        print(f"✓ Secret removed: {name}")
+        print(f"[OK] Secret removed: {name}")
 
     def test_s3_connection(self, bucket: str, path: str = '') -> bool:
         """Testar conexão S3"""
         try:
             test_path = f"s3://{bucket}/{path}" if path else f"s3://{bucket}"
             self.con.execute(f"SELECT * FROM delta_scan('{test_path}') LIMIT 1")
-            print(f"✓ S3 connection successful: {test_path}")
+            print(f"[OK] S3 connection successful: {test_path}")
             return True
         except Exception as e:
             print(f"✗ S3 connection failed: {e}")

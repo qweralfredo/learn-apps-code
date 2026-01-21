@@ -185,7 +185,7 @@ print("="*60)
     nb_file = output_dir / f"capitulo_{num}_{nome}.ipynb"
     with open(nb_file, 'w', encoding='utf-8') as f:
         json.dump(notebook, f, indent=1)
-    print(f"✅ {nb_file.name}")
+    print(f"[OK] {nb_file.name}")
 
 print("\\n" + "="*60)
 print("TODOS OS CAPÍTULOS CRIADOS COM SUCESSO!")

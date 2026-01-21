@@ -1,77 +1,539 @@
-# -*- coding: utf-8 -*-
-"""
-Capítulo 03: Configuração Credenciais AWS
-"""
-
-import duckdb
-import pandas as pd
-import pathlib
-
-# ==============================================================================
-# SETUP E DADOS DE EXEMPLO
-# ==============================================================================
-print(f"--- Iniciando Capítulo 03: Configuração Credenciais AWS ---")
-
-# Conexão em memória para testes
-con = duckdb.connect(database=':memory:')
-
-# Criação de dados mock para exemplos
-con.execute("""
-    CREATE TABLE IF NOT EXISTS vendas (
-        id INTEGER,
-        data DATE,
-        produto VARCHAR,
-        categoria VARCHAR,
-        valor DECIMAL(10,2),
-        quantidade INTEGER
-    );
-    
-    INSERT INTO vendas VALUES
-    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
-    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
-    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
-    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
-""")
-print("Dados de exemplo 'vendas' criados com sucesso.")
-
-# ==============================================================================
-# CONTEÚDO DO CAPÍTULO
-# ==============================================================================
-
-# -----------------------------------------------------------------------------
-# Tópico: S3 Region
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: S3 Region")
-
-# TODO: Implementar exemplos práticos para S3 Region
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-# -----------------------------------------------------------------------------
-# Tópico: Access Key
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Access Key")
-
-# TODO: Implementar exemplos práticos para Access Key
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-# -----------------------------------------------------------------------------
-# Tópico: Secret Key
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Secret Key")
-
-# TODO: Implementar exemplos práticos para Secret Key
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-# -----------------------------------------------------------------------------
-# Tópico: Session Token
-# -----------------------------------------------------------------------------
-print(f"\n>>> Executando: Session Token")
-
-# TODO: Implementar exemplos práticos para Session Token
-# Exemplo genérico:
-# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
-
-print("\n--- Capítulo concluído com sucesso ---")
+# -*- coding: utf-8 -*-
+
+
+
+
+
+
+"""
+
+
+
+
+
+
+Capítulo 03: Configuração Credenciais AWS
+
+
+
+
+
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+import duckdb
+
+
+
+
+
+
+import pandas as pd
+
+
+
+
+
+
+import pathlib
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ==============================================================================
+
+
+
+
+
+
+# SETUP E DADOS DE EXEMPLO
+
+
+
+
+
+
+# ==============================================================================
+
+
+
+
+
+
+print(f"--- Iniciando Capítulo 03: Configuração Credenciais AWS ---")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Conexão em memória para testes
+
+
+
+
+
+
+con = duckdb.connect(database=':memory:')
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Criação de dados mock para exemplos
+
+
+
+
+
+
+con.execute("""
+
+
+
+
+
+
+    CREATE TABLE IF NOT EXISTS vendas (
+
+
+
+
+
+
+        id INTEGER,
+
+
+
+
+
+
+        data DATE,
+
+
+
+
+
+
+        produto VARCHAR,
+
+
+
+
+
+
+        categoria VARCHAR,
+
+
+
+
+
+
+        valor DECIMAL(10,2),
+
+
+
+
+
+
+        quantidade INTEGER
+
+
+
+
+
+
+    );
+
+
+
+
+
+
+    
+
+
+
+
+
+
+    INSERT INTO vendas VALUES
+
+
+
+
+
+
+    (1, '2023-01-01', 'Notebook', 'Eletronicos', 3500.00, 2),
+
+
+
+
+
+
+    (2, '2023-01-02', 'Mouse', 'Perifericos', 50.00, 10),
+
+
+
+
+
+
+    (3, '2023-01-03', 'Teclado', 'Perifericos', 120.00, 5),
+
+
+
+
+
+
+    (4, '2023-01-04', 'Monitor', 'Eletronicos', 1200.00, 3);
+
+
+
+
+
+
+""")
+
+
+
+
+
+
+print("Dados de exemplo 'vendas' criados com sucesso.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ==============================================================================
+
+
+
+
+
+
+# CONTEÚDO DO CAPÍTULO
+
+
+
+
+
+
+# ==============================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+# Tópico: S3 Region
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+print(f"\n>>> Executando: S3 Region")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TODO: Implementar exemplos práticos para S3 Region
+
+
+
+
+
+
+# Exemplo genérico:
+
+
+
+
+
+
+# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+# Tópico: Access Key
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+print(f"\n>>> Executando: Access Key")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TODO: Implementar exemplos práticos para Access Key
+
+
+
+
+
+
+# Exemplo genérico:
+
+
+
+
+
+
+# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+# Tópico: Secret Key
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+print(f"\n>>> Executando: Secret Key")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TODO: Implementar exemplos práticos para Secret Key
+
+
+
+
+
+
+# Exemplo genérico:
+
+
+
+
+
+
+# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+# Tópico: Session Token
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+print(f"\n>>> Executando: Session Token")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TODO: Implementar exemplos práticos para Session Token
+
+
+
+
+
+
+# Exemplo genérico:
+
+
+
+
+
+
+# result = con.sql("SELECT * FROM vendas LIMIT 1").show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+print("\n--- Capítulo concluído com sucesso ---")
+
+
+
+
+
+

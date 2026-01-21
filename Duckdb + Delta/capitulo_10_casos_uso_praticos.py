@@ -446,7 +446,7 @@ if __name__ == "__main__":
         # Exportar
         report.to_csv('data_quality_report.csv', index=False)
     else:
-        print("\n✓ No quality issues found!")
+        print("\n[OK] No quality issues found!")
 
 # Exemplo/Bloco 3
 import duckdb
@@ -652,7 +652,7 @@ class DataLakeMigration:
             mode="overwrite"
         )
 
-        print(f"  ✓ Migration completed: {delta_table_path}")
+        print(f"  [OK] Migration completed: {delta_table_path}")
 
         # 5. Verificar
         count = self.con.execute(f"""
@@ -703,7 +703,7 @@ class DataLakeMigration:
             mode="append"
         )
 
-        print("✓ Incremental sync completed")
+        print("[OK] Incremental sync completed")
 
     def hybrid_query(self, query: str):
         """
@@ -751,13 +751,13 @@ if __name__ == "__main__":
     print(result)
 
 # Exemplo/Bloco 5
-# ✓ Use partition pruning
-WHERE year = 2024 AND month = 1
+# [OK] Use partition pruning
+# WHERE year = 2024 AND month = 1
 
-# ✓ Projection pushdown
-SELECT id, name FROM delta_scan('./table')
+# [OK] Projection pushdown
+# SELECT id, name FROM delta_scan('./table')
 
-# ✓ Cache queries frequentes
+# [OK] Cache queries frequentes
 @lru_cache(maxsize=128)
 def get_metrics(date): ...
 
@@ -770,24 +770,24 @@ duckdb.execute("SELECT * FROM delta_scan('./data')")
 write_deltalake("./data", df)
 
 # Exemplo/Bloco 7
-# ✓ Use secrets
+# [OK] Use secrets
 con.execute("CREATE SECRET (TYPE S3, PROVIDER credential_chain)")
 
-# ✓ Read-only quando possível
+# [OK] Read-only quando possível
 con = duckdb.connect('db.duckdb', read_only=True)
 
 # Exemplo/Bloco 8
-# ✓ Estrutura modular
+# [OK] Estrutura modular
 class DataPipeline:
     def extract(self): ...
     def transform(self): ...
     def load(self): ...
 
-# ✓ Logging
+# [OK] Logging
 import logging
 logging.info(f"Processed {count} rows")
 
-# ✓ Testes
+# [OK] Testes
 def test_pipeline():
     assert pipeline.run() == expected_result
 

@@ -12,10 +12,12 @@ import duckdb
 import time
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Habilitar profiling para ver otimizações
-con.execute("SET enable_profiling=true")
-con.execute("SET profiling_mode='detailed'")
+# con.execute("SET enable_profiling='json'") # Alterado para evitar erro de versao
+con.execute("PRAGMA enable_profiling='json'")
+con.execute("PRAGMA profiling_mode='detailed'")
 
 # Query com filter pushdown
 start = time.time()
@@ -31,7 +33,7 @@ print(f"Results: {result}")
 print(f"Time: {elapsed:.2f}s")
 
 # Ver profile da query
-profile = con.execute("PRAGMA last_profiling_output").fetchone()[0]
+profile = con.execute("-- -- -- -- -- -- -- -- PRAGMA last_profiling_output").fetchone()[0]
 print(profile)
 
 # Exemplo/Bloco 2
@@ -39,6 +41,7 @@ import duckdb
 import time
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Teste 1: SELECT *
 start = time.time()
@@ -66,6 +69,7 @@ print(f"Speedup: {time1/time2:.2f}x")
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Analisar metadata Parquet da tabela Delta
 metadata = con.execute("""
@@ -81,6 +85,7 @@ from deltalake import write_deltalake
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Criar DataFrame grande
 df = con.execute("""
@@ -103,6 +108,7 @@ write_deltalake(
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ver compression codec usado
 metadata = con.execute("""
@@ -177,6 +183,7 @@ print(f"Speedup: {delta_time/native_time:.2f}x")
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 con.execute("SET enable_profiling=true")
 con.execute("SET profiling_mode='detailed'")
 
@@ -189,7 +196,7 @@ result = con.execute("""
 """).fetchdf()
 
 # Ver profile detalhado
-profile = con.execute("PRAGMA last_profiling_output").fetchone()[0]
+profile = con.execute("-- -- -- -- -- -- -- -- PRAGMA last_profiling_output").fetchone()[0]
 
 # Parsear profile
 print("=== QUERY PROFILE ===")
@@ -267,6 +274,7 @@ class PerformanceMonitor:
 # Uso
 if __name__ == "__main__":
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
     monitor = PerformanceMonitor(con)
 
     # Executar queries com monitoramento
@@ -278,7 +286,7 @@ if __name__ == "__main__":
 
     for query in queries:
         metrics = monitor.execute_and_measure(query)
-        print(f"✓ Query completed in {metrics.execution_time:.2f}s")
+        print(f"[OK] Query completed in {metrics.execution_time:.2f}s")
 
     monitor.print_summary()
 

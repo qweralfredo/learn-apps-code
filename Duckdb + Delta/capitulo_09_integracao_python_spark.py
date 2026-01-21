@@ -12,6 +12,7 @@ import duckdb
 import pandas as pd
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler tabela Delta completa para Pandas
 df = con.execute("""
@@ -53,7 +54,7 @@ write_deltalake(
     mode="overwrite"
 )
 
-print("✓ Pandas DataFrame written to Delta table")
+print("[OK] Pandas DataFrame written to Delta table")
 
 # Exemplo/Bloco 4
 import duckdb
@@ -62,9 +63,10 @@ from deltalake import write_deltalake
 
 def etl_pipeline():
     """
-    ETL completo: Delta → Transform → Delta
+    ETL completo: Delta -> Transform -> Delta
     """
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
 
     # Extract: Ler de Delta
     print("1. Extracting from Delta...")
@@ -89,7 +91,7 @@ def etl_pipeline():
         mode="overwrite"
     )
 
-    print("✓ ETL pipeline completed")
+    print("[OK] ETL pipeline completed")
     return df_aggregated
 
 # Executar
@@ -101,6 +103,7 @@ import duckdb
 import polars as pl
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler Delta para Polars
 df_polars = con.execute("""
@@ -114,6 +117,7 @@ import duckdb
 import polars as pl
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler de Delta
 df = con.execute("SELECT * FROM delta_scan('./sales')").pl()
@@ -163,6 +167,7 @@ import duckdb
 import pyarrow as pa
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler Delta para Arrow Table
 arrow_table = con.execute("""
@@ -179,18 +184,19 @@ import pyarrow as pa
 import pandas as pd
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
-# Delta → Arrow
+# Delta -> Arrow
 arrow_table = con.execute("SELECT * FROM delta_scan('./sales')").arrow()
 
-# Arrow → Pandas (zero-copy quando possível)
+# Arrow -> Pandas (zero-copy quando possível)
 df_pandas = arrow_table.to_pandas()
 
-# Arrow → Parquet file
+# Arrow -> Parquet file
 import pyarrow.parquet as pq
 pq.write_table(arrow_table, 'output.parquet')
 
-# Parquet file → DuckDB
+# Parquet file -> DuckDB
 result = con.execute("SELECT * FROM 'output.parquet'").df()
 
 # Exemplo/Bloco 10
@@ -253,6 +259,7 @@ write_deltalake(
 # Ler com DuckDB
 import duckdb
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 result = con.execute("SELECT * FROM delta_scan('./evolving_table')").df()
 print(result)
 # Linhas antigas terão NULL na nova coluna
@@ -268,7 +275,7 @@ spark = SparkSession.builder \
     .config("spark.jars.packages", "io.delta:delta-core_2.12:2.4.0") \
     .getOrCreate()
 
-print(f"✓ Spark {spark.version} with Delta Lake initialized")
+print(f"[OK] Spark {spark.version} with Delta Lake initialized")
 
 # Exemplo/Bloco 14
 from pyspark.sql import SparkSession
@@ -292,12 +299,13 @@ df.write \
     .mode("overwrite") \
     .save("./spark_delta_table")
 
-print("✓ Delta table created with Spark")
+print("[OK] Delta table created with Spark")
 
 # Exemplo/Bloco 15
 import duckdb
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Ler tabela criada pelo Spark
 result = con.execute("""
@@ -348,6 +356,7 @@ def spark_to_duckdb_pipeline():
     print("2. Analyzing with DuckDB...")
 
     con = duckdb.connect()
+    con.execute("INSTALL delta; LOAD delta;")
 
     # Query analítica
     analysis = con.execute("""
@@ -410,6 +419,7 @@ deltaTable.alias("target").merge(
 # Ler resultado com DuckDB
 import duckdb
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 result = con.execute("""
     SELECT * FROM delta_scan('./delta_advanced')
     ORDER BY id
@@ -471,13 +481,14 @@ class DataLakehouseWorkflow:
             .save(self.delta_path)
 
         spark.stop()
-        print(f"✓ ETL completed. Data written to {self.delta_path}")
+        print(f"[OK] ETL completed. Data written to {self.delta_path}")
 
     def fast_analytics_with_duckdb(self):
         """
         Analytics rápidas com DuckDB
         """
         con = duckdb.connect()
+        con.execute("INSTALL delta; LOAD delta;")
 
         print("\nRunning fast analytics with DuckDB...")
 
@@ -534,6 +545,7 @@ import pandas as pd
 from deltalake import write_deltalake
 
 con = duckdb.connect()
+con.execute("INSTALL delta; LOAD delta;")
 
 # Célula 2: Carregar dados
 df = con.execute("""
