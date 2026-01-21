@@ -1,0 +1,460 @@
+# -*- coding: utf-8 -*-
+"""
+Script para gerar TODOS os arquivos .py e .ipynb do curso DuckDB + Secrets
+===========================================================================
+
+Este script cria automaticamente os 10 códigos Python e 10 Jupyter Notebooks
+"""
+
+import os
+import json
+
+def criar_notebook_basico(capitulo_num, capitulo_nome, conteudo_python):
+    """Cria estrutura básica de Jupyter Notebook"""
+    cells = [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                f"# Capítulo {capitulo_num}: {capitulo_nome}\n",
+                "\n",
+                "Este notebook contém exemplos práticos e exercícios do capítulo.\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "source": [
+                "# Imports necessários\n",
+                "import duckdb\n",
+                "import os\n",
+                "import pandas as pd\n",
+                "\n",
+                "print('✓ Imports realizados')"
+            ],
+            "outputs": []
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Setup Inicial\n",
+                "\n",
+                "Configuração do ambiente DuckDB e instalação de extensions necessárias."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "source": conteudo_python.split('\n'),
+            "outputs": []
+        }
+    ]
+
+    notebook = {
+        "cells": cells,
+        "metadata": {
+            "kernelspec": {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3"
+            },
+            "language_info": {
+                "codemirror_mode": {"name": "ipython", "version": 3},
+                "file_extension": ".py",
+                "mimetype": "text/x-python",
+                "name": "python",
+                "nbconvert_exporter": "python",
+                "pygments_lexer": "ipython3",
+                "version": "3.11.0"
+            }
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5
+    }
+
+    return notebook
+
+
+# Definição dos capítulos e seus conteúdos principais
+capitulos = {
+    "01": {
+        "nome": "Introdução a Secrets",
+        "python": """# Capítulo 1: Introdução a Secrets
+import duckdb
+
+# Exemplo 1: Criar secret S3
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+con.execute(\"\"\"
+    CREATE SECRET my_s3 (
+        TYPE s3,
+        KEY_ID 'AKIAIOSFODNN7EXAMPLE',
+        SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        REGION 'us-east-1'
+    )
+\"\"\")
+
+# Listar secrets
+secrets = con.execute("SELECT * FROM duckdb_secrets()").df()
+print(secrets[['name', 'type', 'provider']])
+
+# Usar which_secret()
+result = con.execute(\"\"\"
+    SELECT * FROM which_secret('s3://bucket/file.parquet', 's3')
+\"\"\").df()
+print(result[['name', 'scope']])
+
+con.close()
+"""
+    },
+    "02": {
+        "nome": "Tipos de Secrets",
+        "python": """# Capítulo 2: Tipos de Secrets
+import duckdb
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# S3 Secret
+con.execute(\"\"\"
+    CREATE SECRET s3_secret (TYPE s3, KEY_ID 'key', SECRET 'secret', REGION 'us-east-1')
+\"\"\")
+
+# HTTP Secret
+con.execute(\"\"\"
+    CREATE SECRET http_secret (TYPE http, BEARER_TOKEN 'token123')
+\"\"\")
+
+# Listar por tipo
+secrets = con.execute("SELECT name, type, provider FROM duckdb_secrets()").df()
+print(secrets)
+
+con.close()
+"""
+    },
+    "03": {
+        "nome": "Cloud Storage Secrets",
+        "python": """# Capítulo 3: Cloud Storage Secrets
+import duckdb
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# S3 com configurações avançadas
+con.execute(\"\"\"
+    CREATE SECRET s3_advanced (
+        TYPE s3,
+        KEY_ID 'AKIAEXAMPLE',
+        SECRET 'secretEXAMPLE',
+        REGION 'us-east-1',
+        ENDPOINT 's3.amazonaws.com',
+        URL_STYLE 'vhost',
+        USE_SSL true
+    )
+\"\"\")
+
+# GCS com credential chain
+con.execute(\"\"\"
+    CREATE SECRET gcs_chain (
+        TYPE gcs,
+        PROVIDER credential_chain
+    )
+\"\"\")
+
+secrets = con.execute("SELECT name, type, scope FROM duckdb_secrets()").df()
+print(secrets)
+
+con.close()
+"""
+    },
+    "04": {
+        "nome": "Database Secrets",
+        "python": """# Capítulo 4: Database Secrets
+import duckdb
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# PostgreSQL Secret
+con.execute(\"\"\"
+    CREATE SECRET pg_db (
+        TYPE postgres,
+        HOST 'localhost',
+        PORT 5432,
+        DATABASE 'mydb',
+        USER 'postgres',
+        PASSWORD 'password',
+        SSLMODE 'require'
+    )
+\"\"\")
+
+# Listar secrets de database
+secrets = con.execute(\"\"\"
+    SELECT name, type FROM duckdb_secrets() WHERE type IN ('postgres', 'mysql')
+\"\"\").df()
+print(secrets)
+
+con.close()
+"""
+    },
+    "05": {
+        "nome": "Persistent Secrets",
+        "python": """# Capítulo 5: Persistent Secrets
+import duckdb
+import os
+
+# Criar database file-based
+db_path = 'test_persistent.duckdb'
+con = duckdb.connect(db_path)
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Criar PERSISTENT secret
+con.execute(\"\"\"
+    CREATE PERSISTENT SECRET my_persistent_s3 (
+        TYPE s3,
+        KEY_ID 'persistent_key',
+        SECRET 'persistent_secret',
+        REGION 'us-east-1'
+    )
+\"\"\")
+
+# Verificar persistência
+secrets = con.execute("SELECT name, persistent, storage FROM duckdb_secrets()").df()
+print(secrets)
+
+con.close()
+
+# Cleanup
+if os.path.exists(db_path):
+    os.remove(db_path)
+"""
+    },
+    "06": {
+        "nome": "Secret Providers",
+        "python": """# Capítulo 6: Secret Providers
+import duckdb
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Config provider (explícito)
+con.execute(\"\"\"
+    CREATE SECRET s3_config (
+        TYPE s3,
+        PROVIDER config,
+        KEY_ID 'key',
+        SECRET 'secret'
+    )
+\"\"\")
+
+# Credential chain provider
+con.execute(\"\"\"
+    CREATE SECRET s3_chain (
+        TYPE s3,
+        PROVIDER credential_chain,
+        CHAIN 'env;config'
+    )
+\"\"\")
+
+# Listar providers
+secrets = con.execute("SELECT name, type, provider FROM duckdb_secrets()").df()
+print(secrets)
+
+con.close()
+"""
+    },
+    "07": {
+        "nome": "SCOPE e Named Secrets",
+        "python": """# Capítulo 7: SCOPE e Named Secrets
+import duckdb
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Secrets com SCOPEs diferentes
+con.execute(\"\"\"
+    CREATE SECRET s3_bucket1 (
+        TYPE s3, KEY_ID 'k1', SECRET 's1',
+        SCOPE 's3://bucket1/'
+    )
+\"\"\")
+
+con.execute(\"\"\"
+    CREATE SECRET s3_bucket2 (
+        TYPE s3, KEY_ID 'k2', SECRET 's2',
+        SCOPE 's3://bucket2/'
+    )
+\"\"\")
+
+# Usar which_secret() para verificar matching
+test_urls = ['s3://bucket1/file.parquet', 's3://bucket2/data.csv', 's3://bucket3/other.parquet']
+
+for url in test_urls:
+    try:
+        result = con.execute(f\"SELECT name FROM which_secret('{url}', 's3')\").fetchone()
+        print(f\"{url:40} → {result[0] if result else 'None'}\")
+    except Exception as e:
+        print(f\"{url:40} → Error\")
+
+con.close()
+"""
+    },
+    "08": {
+        "nome": "Secrets com Extensions",
+        "python": """# Capítulo 8: Secrets com Extensions
+import duckdb
+
+con = duckdb.connect(':memory:')
+
+# Setup httpfs
+con.execute("INSTALL httpfs")
+con.execute("LOAD httpfs")
+
+# Secret S3
+con.execute(\"\"\"
+    CREATE SECRET s3_main (
+        TYPE s3, KEY_ID 'key', SECRET 'secret',
+        REGION 'us-east-1', SCOPE 's3://main-bucket/'
+    )
+\"\"\")
+
+# Secret HTTP
+con.execute(\"\"\"
+    CREATE SECRET api_bearer (
+        TYPE http, BEARER_TOKEN 'token123',
+        SCOPE 'https://api.example.com/'
+    )
+\"\"\")
+
+# Listar extensions e secrets
+secrets = con.execute("SELECT name, type, scope FROM duckdb_secrets()").df()
+print(secrets)
+
+con.close()
+"""
+    },
+    "09": {
+        "nome": "Segurança e Best Practices",
+        "python": """# Capítulo 9: Segurança e Best Practices
+import duckdb
+import os
+from datetime import datetime
+
+# NUNCA hardcode credenciais - use variáveis de ambiente
+os.environ['AWS_ACCESS_KEY_ID'] = 'EXAMPLE_KEY'
+os.environ['AWS_SECRET_ACCESS_KEY'] = 'EXAMPLE_SECRET'
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Usar credenciais de variáveis de ambiente
+s3_key = os.getenv('AWS_ACCESS_KEY_ID')
+s3_secret = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+con.execute(f\"\"\"
+    CREATE SECRET s3_from_env (
+        TYPE s3,
+        KEY_ID '{s3_key}',
+        SECRET '{s3_secret}',
+        REGION 'us-east-1',
+        USE_SSL true
+    )
+\"\"\")
+
+print(\"✓ Secret criado usando variáveis de ambiente\")
+print(\"✓ SSL habilitado para segurança\")
+
+# Listar secrets (sem expor credenciais)
+secrets = con.execute("SELECT name, type, provider FROM duckdb_secrets()").df()
+print(secrets)
+
+con.close()
+"""
+    },
+    "10": {
+        "nome": "Casos de Uso Avançados",
+        "python": """# Capítulo 10: Casos de Uso Avançados
+import duckdb
+
+con = duckdb.connect(':memory:')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Multi-cloud setup simulado
+con.execute(\"\"\"
+    CREATE SECRET s3_source (TYPE s3, PROVIDER credential_chain, SCOPE 's3://raw-data/')
+\"\"\")
+
+con.execute(\"\"\"
+    CREATE SECRET gcs_processing (TYPE gcs, PROVIDER credential_chain, SCOPE 'gs://processing/')
+\"\"\")
+
+# Exemplo de query cross-cloud (conceitual)
+print(\"\"\"
+ETL Pipeline Multi-Cloud:
+1. Extract from S3 (raw data)
+2. Transform in DuckDB
+3. Load to GCS (processed data)
+\"\"\")
+
+# Listar configuração
+secrets = con.execute("SELECT name, type, scope FROM duckdb_secrets()").df()
+print(\"\\nConfiguração Multi-Cloud:\")
+print(secrets)
+
+con.close()
+"""
+    }
+}
+
+
+def gerar_arquivos():
+    """Gera todos os arquivos .py e .ipynb"""
+    import sys
+    import io
+
+    # Configurar encoding para Windows
+    if sys.platform == 'win32':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+    code_dir = r"C:\projetos\Cursos\Duckdb + Secrets\code"
+
+    print("Gerando arquivos do curso DuckDB + Secrets...")
+    print("=" * 60)
+
+    for cap_num, cap_data in capitulos.items():
+        # Gerar arquivo .py
+        py_filename = f"capitulo_{cap_num}_{cap_data['nome'].lower().replace(' ', '_')}.py"
+        py_path = os.path.join(code_dir, py_filename)
+
+        with open(py_path, 'w', encoding='utf-8') as f:
+            f.write(f"# -*- coding: utf-8 -*-\n")
+            f.write(f'"""\nCapítulo {cap_num}: {cap_data["nome"]}\n"""\n\n')
+            f.write(cap_data['python'])
+
+        print(f"OK Criado: {py_filename}")
+
+        # Gerar arquivo .ipynb
+        ipynb_filename = f"capitulo_{cap_num}_{cap_data['nome'].lower().replace(' ', '_')}.ipynb"
+        ipynb_path = os.path.join(code_dir, ipynb_filename)
+
+        notebook = criar_notebook_basico(cap_num, cap_data['nome'], cap_data['python'])
+
+        with open(ipynb_path, 'w', encoding='utf-8') as f:
+            json.dump(notebook, f, indent=2, ensure_ascii=False)
+
+        print(f"OK Criado: {ipynb_filename}")
+        print()
+
+    print("=" * 60)
+    print(f"OK Total: {len(capitulos)} arquivos .py criados")
+    print(f"OK Total: {len(capitulos)} arquivos .ipynb criados")
+    print(f"OK TODOS OS {len(capitulos) * 2} ARQUIVOS FORAM GERADOS COM SUCESSO!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    gerar_arquivos()
