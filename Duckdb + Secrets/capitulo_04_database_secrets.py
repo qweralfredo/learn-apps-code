@@ -1,31 +1,856 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 04: Database Secrets
+Secrets-04-database-secrets
 """
 
-# Capítulo 4: Database Secrets
+# Secrets-04-database-secrets
+import duckdb
+import os
+
+# Exemplo/Bloco 1
 import duckdb
 
-con = duckdb.connect(':memory:')
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+
+# MySQL secret básico
+con.execute("""
+    CREATE SECRET mysql_basic (
+        TYPE mysql,
+        HOST 'localhost',
+        PORT 3306,
+        DATABASE 'mydb',
+        USER 'myuser',
+        PASSWORD 'mypassword'
+    )
+""")
+
+print("Secret MySQL criado!")
+
+# Verificar
+info = con.execute("""
+    SELECT name, type, provider
+    FROM duckdb_secrets()
+    WHERE name = 'mysql_basic'
+""").df()
+
+print("\nInformações do secret:")
+print(info)
+
+# Exemplo/Bloco 2
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+
+# Connection string completa
+con.execute("""
+    CREATE SECRET mysql_uri (
+        TYPE mysql,
+        CONNECTION_STRING 'mysql://user:password@localhost:3306/database'
+    )
+""")
+
+print("Secret MySQL com connection string criado!")
+
+# Com parâmetros adicionais na URI
+con.execute("""
+    CREATE SECRET mysql_uri_full (
+        TYPE mysql,
+        CONNECTION_STRING 'mysql://user:password@host:3306/db?charset=utf8mb4&timeout=30'
+    )
+""")
+
+print("Secret com parâmetros adicionais na URI criado!")
+
+# Exemplo/Bloco 3
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+
+# Criar secret
+con.execute("""
+    CREATE SECRET mysql_prod (
+        TYPE mysql,
+        HOST 'mysql.example.com',
+        PORT 3306,
+        DATABASE 'production',
+        USER 'readonly_user',
+        PASSWORD 'secure_password'
+    )
+""")
+
+# ATTACH MySQL database
+con.execute("""
+    ATTACH 'mysql:production' AS mysql_prod (TYPE mysql, SECRET mysql_prod)
+""")
+
+print("MySQL database attached!")
+
+# Listar tabelas do MySQL
+try:
+    tables = con.execute("""
+        SELECT table_schema, table_name
+        FROM mysql_prod.information_schema.tables
+        WHERE table_schema = 'production'
+        LIMIT 5
+    """).df()
+
+    print("\nTabelas disponíveis:")
+    print(tables)
+except Exception as e:
+    print(f"\nNota: {e}")
+    print("(Exemplo teórico - requer MySQL real)")
+
+# Exemplo/Bloco 4
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+
+# Setup (teórico)
+con.execute("""
+    CREATE SECRET mysql_db (
+        TYPE mysql,
+        HOST 'localhost',
+        DATABASE 'sales',
+        USER 'app_user',
+        PASSWORD 'app_pass'
+    )
+""")
+
+con.execute("""
+    ATTACH 'mysql:sales' AS mysql_sales (TYPE mysql, SECRET mysql_db)
+""")
+
+# Query direto em tabela MySQL
+query = """
+    SELECT
+        customer_id,
+        COUNT(*) as order_count,
+        SUM(total_amount) as total_spent
+    FROM mysql_sales.orders
+    WHERE order_date >= '2024-01-01'
+    GROUP BY customer_id
+    ORDER BY total_spent DESC
+    LIMIT 10
+"""
+
+print("Query exemplo:")
+print(query)
+print("\n(Executaria se MySQL estivesse conectado)")
+
+# Exemplo/Bloco 5
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+
+# MySQL com SSL básico
+con.execute("""
+    CREATE SECRET mysql_ssl (
+        TYPE mysql,
+        HOST 'mysql.example.com',
+        PORT 3306,
+        DATABASE 'secure_db',
+        USER 'secure_user',
+        PASSWORD 'secure_password',
+        SSL_MODE 'REQUIRED'
+    )
+""")
+
+print("Secret MySQL com SSL criado!")
+
+# MySQL com certificados SSL
+con.execute("""
+    CREATE SECRET mysql_ssl_certs (
+        TYPE mysql,
+        HOST 'mysql.example.com',
+        PORT 3306,
+        DATABASE 'secure_db',
+        USER 'secure_user',
+        PASSWORD 'secure_password',
+        SSL_MODE 'VERIFY_CA',
+        SSL_CA '/path/to/ca-cert.pem',
+        SSL_CERT '/path/to/client-cert.pem',
+        SSL_KEY '/path/to/client-key.pem'
+    )
+""")
+
+print("Secret MySQL com certificados SSL criado!")
+
+print("""
+SSL Modes:
+┌─────────────────┬──────────────────────────────────────┐
+│ DISABLED        │ Sem SSL (não recomendado)            │
+│ PREFERRED       │ SSL se disponível (padrão)           │
+│ REQUIRED        │ SSL obrigatório                      │
+│ VERIFY_CA       │ SSL + verifica certificado CA        │
+│ VERIFY_IDENTITY │ SSL + verifica hostname              │
+└─────────────────┴──────────────────────────────────────┘
+""")
+
+# Exemplo/Bloco 6
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+
+# MySQL com configurações de conexão
+con.execute("""
+    CREATE SECRET mysql_pool (
+        TYPE mysql,
+        HOST 'mysql.example.com',
+        PORT 3306,
+        DATABASE 'app_db',
+        USER 'app_user',
+        PASSWORD 'app_password',
+        CONNECT_TIMEOUT 30,
+        READ_TIMEOUT 60,
+        WRITE_TIMEOUT 60
+    )
+""")
+
+print("""
+Secret MySQL com timeouts configurados!
+
+Timeouts (segundos):
+- CONNECT_TIMEOUT: Tempo para estabelecer conexão
+- READ_TIMEOUT: Tempo para ler dados
+- WRITE_TIMEOUT: Tempo para escrever dados
+
+Recomendações:
+┌────────────────────┬─────────┬──────────┬──────────┐
+│ Ambiente           │ Connect │ Read     │ Write    │
+├────────────────────┼─────────┼──────────┼──────────┤
+│ Local (LAN)        │   10s   │   30s    │   30s    │
+│ Cloud (mesma DC)   │   20s   │   60s    │   60s    │
+│ Cross-region       │   30s   │  120s    │  120s    │
+│ Internet público   │   40s   │  180s    │  180s    │
+└────────────────────┴─────────┴──────────┴──────────┘
+""")
+
+# Exemplo/Bloco 7
+import duckdb
+
+con = duckdb.connect()
 con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
 
-# PostgreSQL Secret
+# PostgreSQL secret básico
 con.execute("""
-    CREATE SECRET pg_db (
+    CREATE SECRET postgres_basic (
+        TYPE postgres,
+        HOST 'localhost',
+        PORT 5432,
+        DATABASE 'mydb',
+        USER 'postgres',
+        PASSWORD 'password'
+    )
+""")
+
+print("Secret PostgreSQL criado!")
+
+# Com schema específico
+con.execute("""
+    CREATE SECRET postgres_schema (
         TYPE postgres,
         HOST 'localhost',
         PORT 5432,
         DATABASE 'mydb',
         USER 'postgres',
         PASSWORD 'password',
+        SCHEMA 'public'
+    )
+""")
+
+print("Secret com schema específico criado!")
+
+# Exemplo/Bloco 8
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Connection string simples
+con.execute("""
+    CREATE SECRET postgres_uri (
+        TYPE postgres,
+        CONNECTION_STRING 'postgresql://user:password@localhost:5432/dbname'
+    )
+""")
+
+print("Secret PostgreSQL com connection string criado!")
+
+# Connection string com parâmetros
+con.execute("""
+    CREATE SECRET postgres_uri_full (
+        TYPE postgres,
+        CONNECTION_STRING 'postgresql://user:pass@host:5432/db?sslmode=require&connect_timeout=10'
+    )
+""")
+
+print("Secret com parâmetros na URI criado!")
+
+# Connection string com URL encoding
+con.execute("""
+    CREATE SECRET postgres_uri_encoded (
+        TYPE postgres,
+        CONNECTION_STRING 'postgresql://user:p%40ssw%23rd@host:5432/db'
+    )
+""")
+
+print("Secret com senha URL-encoded criada!")
+print("Nota: @ → %40, # → %23")
+
+# Exemplo/Bloco 9
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Criar secret
+con.execute("""
+    CREATE SECRET postgres_prod (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        PORT 5432,
+        DATABASE 'production',
+        USER 'readonly_user',
+        PASSWORD 'secure_password',
         SSLMODE 'require'
     )
 """)
 
-# Listar secrets de database
-secrets = con.execute("""
-    SELECT name, type FROM duckdb_secrets() WHERE type IN ('postgres', 'mysql')
-""").df()
-print(secrets)
+# ATTACH PostgreSQL database
+con.execute("""
+    ATTACH 'postgres:production' AS pg_prod (TYPE postgres, SECRET postgres_prod)
+""")
 
-con.close()
+print("PostgreSQL database attached!")
+
+# Listar schemas
+try:
+    schemas = con.execute("""
+        SELECT schema_name
+        FROM pg_prod.information_schema.schemata
+        WHERE schema_name NOT IN ('pg_catalog', 'information_schema')
+    """).df()
+
+    print("\nSchemas disponíveis:")
+    print(schemas)
+except Exception as e:
+    print(f"\nNota: {e}")
+    print("(Exemplo teórico - requer PostgreSQL real)")
+
+# Exemplo/Bloco 10
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Setup
+con.execute("""
+    CREATE SECRET pg_analytics (
+        TYPE postgres,
+        HOST 'localhost',
+        DATABASE 'analytics',
+        USER 'analyst',
+        PASSWORD 'analyst_pass'
+    )
+""")
+
+con.execute("""
+    ATTACH 'postgres:analytics' AS pg_analytics (TYPE postgres, SECRET pg_analytics)
+""")
+
+# Query com JOIN entre DuckDB e PostgreSQL
+query = """
+    -- Tabela local no DuckDB
+    WITH local_data AS (
+        SELECT customer_id, discount_tier
+        FROM customers_discount
+    )
+    -- JOIN com tabela PostgreSQL
+    SELECT
+        pg.customer_id,
+        pg.customer_name,
+        pg.total_orders,
+        ld.discount_tier,
+        pg.total_spent * (1 - ld.discount_tier) as discounted_total
+    FROM pg_analytics.customers pg
+    JOIN local_data ld ON pg.customer_id = ld.customer_id
+    WHERE pg.total_spent > 1000
+    ORDER BY discounted_total DESC
+"""
+
+print("Query cross-database exemplo:")
+print(query)
+print("\n(Executaria se PostgreSQL estivesse conectado)")
+
+# Exemplo/Bloco 11
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# PostgreSQL com SSL básico
+con.execute("""
+    CREATE SECRET postgres_ssl (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        PORT 5432,
+        DATABASE 'secure_db',
+        USER 'secure_user',
+        PASSWORD 'secure_password',
+        SSLMODE 'require'
+    )
+""")
+
+print("Secret PostgreSQL com SSL criado!")
+
+# PostgreSQL com certificados SSL completos
+con.execute("""
+    CREATE SECRET postgres_ssl_verify (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        PORT 5432,
+        DATABASE 'secure_db',
+        USER 'secure_user',
+        PASSWORD 'secure_password',
+        SSLMODE 'verify-full',
+        SSLROOTCERT '/path/to/root.crt',
+        SSLCERT '/path/to/client.crt',
+        SSLKEY '/path/to/client.key'
+    )
+""")
+
+print("Secret PostgreSQL com verificação SSL completa criado!")
+
+print("""
+PostgreSQL SSL Modes:
+┌──────────────┬───────────────────────────────────────────┐
+│ disable      │ Sem SSL                                   │
+│ allow        │ Tenta SSL, aceita não-SSL                │
+│ prefer       │ Prefere SSL, aceita não-SSL (padrão)     │
+│ require      │ SSL obrigatório, sem verificação         │
+│ verify-ca    │ SSL + verifica certificado CA            │
+│ verify-full  │ SSL + verifica CA + hostname             │
+└──────────────┴───────────────────────────────────────────┘
+
+Recomendações:
+✓ Produção: verify-full
+✓ Staging: require ou verify-ca
+✓ Desenvolvimento local: prefer ou disable
+""")
+
+# Exemplo/Bloco 12
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Master (write)
+con.execute("""
+    CREATE SECRET pg_master (
+        TYPE postgres,
+        HOST 'postgres-master.example.com',
+        PORT 5432,
+        DATABASE 'production',
+        USER 'app_user',
+        PASSWORD 'app_password',
+        SSLMODE 'require'
+    )
+""")
+
+# Read replica
+con.execute("""
+    CREATE SECRET pg_replica (
+        TYPE postgres,
+        HOST 'postgres-replica.example.com',
+        PORT 5432,
+        DATABASE 'production',
+        USER 'readonly_user',
+        PASSWORD 'readonly_password',
+        SSLMODE 'require'
+    )
+""")
+
+print("""
+Configuração Master-Replica criada!
+
+Uso:
+- pg_master: Queries que precisam dados mais recentes
+- pg_replica: Queries analíticas, relatórios (pode ter lag)
+
+Vantagens:
+✓ Reduz carga no master
+✓ Melhor performance para analytics
+✓ Separação de workloads (OLTP vs OLAP)
+""")
+
+# Exemplo/Bloco 13
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL mysql_scanner; LOAD mysql_scanner;")
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Setup secrets
+con.execute("""
+    CREATE SECRET mysql_orders (
+        TYPE mysql,
+        HOST 'mysql.example.com',
+        DATABASE 'orders_db',
+        USER 'user',
+        PASSWORD 'pass'
+    )
+""")
+
+con.execute("""
+    CREATE SECRET postgres_customers (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        DATABASE 'customers_db',
+        USER 'user',
+        PASSWORD 'pass'
+    )
+""")
+
+# Attach databases
+con.execute("""
+    ATTACH 'mysql:orders_db' AS mysql_orders (TYPE mysql, SECRET mysql_orders)
+""")
+
+con.execute("""
+    ATTACH 'postgres:customers_db' AS pg_customers (TYPE postgres, SECRET postgres_customers)
+""")
+
+# Cross-database query
+query = """
+    SELECT
+        c.customer_id,
+        c.customer_name,
+        c.email,
+        COUNT(o.order_id) as total_orders,
+        SUM(o.amount) as total_spent,
+        MAX(o.order_date) as last_order_date
+    FROM pg_customers.customers c
+    LEFT JOIN mysql_orders.orders o ON c.customer_id = o.customer_id
+    WHERE c.created_at >= '2024-01-01'
+    GROUP BY c.customer_id, c.customer_name, c.email
+    HAVING total_orders > 5
+    ORDER BY total_spent DESC
+    LIMIT 100
+"""
+
+print("Cross-database query (PostgreSQL + MySQL):")
+print(query)
+
+# Exemplo/Bloco 14
+import duckdb
+
+# Query exemplo: Consolidar dados de múltiplas fontes
+query = """
+    -- Dados de vendas do MySQL
+    WITH mysql_sales AS (
+        SELECT
+            DATE_TRUNC('month', order_date) as month,
+            'MySQL' as source,
+            SUM(amount) as total
+        FROM mysql_orders.sales
+        WHERE order_date >= '2024-01-01'
+        GROUP BY 1
+    ),
+    -- Dados de vendas do PostgreSQL
+    postgres_sales AS (
+        SELECT
+            DATE_TRUNC('month', sale_date) as month,
+            'PostgreSQL' as source,
+            SUM(total_amount) as total
+        FROM pg_customers.transactions
+        WHERE sale_date >= '2024-01-01'
+        GROUP BY 1
+    ),
+    -- Dados locais do DuckDB
+    duckdb_sales AS (
+        SELECT
+            DATE_TRUNC('month', date) as month,
+            'DuckDB' as source,
+            SUM(value) as total
+        FROM local_sales
+        WHERE date >= '2024-01-01'
+        GROUP BY 1
+    )
+    -- Consolidação
+    SELECT
+        month,
+        SUM(CASE WHEN source = 'MySQL' THEN total ELSE 0 END) as mysql_total,
+        SUM(CASE WHEN source = 'PostgreSQL' THEN total ELSE 0 END) as postgres_total,
+        SUM(CASE WHEN source = 'DuckDB' THEN total ELSE 0 END) as duckdb_total,
+        SUM(total) as grand_total
+    FROM (
+        SELECT * FROM mysql_sales
+        UNION ALL
+        SELECT * FROM postgres_sales
+        UNION ALL
+        SELECT * FROM duckdb_sales
+    )
+    GROUP BY month
+    ORDER BY month
+"""
+
+print("Query de consolidação multi-database:")
+print(query)
+
+# Exemplo/Bloco 15
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Setup secret
+con.execute("""
+    CREATE SECRET pg_source (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        DATABASE 'source_db',
+        USER 'etl_user',
+        PASSWORD 'etl_password'
+    )
+""")
+
+# Attach
+con.execute("""
+    ATTACH 'postgres:source_db' AS pg_source (TYPE postgres, SECRET pg_source)
+""")
+
+# ETL: PostgreSQL → Parquet
+etl_query = """
+    COPY (
+        SELECT
+            customer_id,
+            customer_name,
+            email,
+            created_at,
+            total_orders,
+            total_spent,
+            last_order_date
+        FROM pg_source.customers
+        WHERE created_at >= '2024-01-01'
+    ) TO 'customers_export.parquet' (FORMAT PARQUET, COMPRESSION 'snappy')
+"""
+
+print("ETL Query exemplo (PostgreSQL → Parquet):")
+print(etl_query)
+print("\nResultado: Arquivo customers_export.parquet criado com dados do PostgreSQL")
+
+# Exemplo/Bloco 16
+import duckdb
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Criar secret
+con.execute("""
+    CREATE SECRET pg_test (
+        TYPE postgres,
+        HOST 'localhost',
+        PORT 5432,
+        DATABASE 'testdb',
+        USER 'testuser',
+        PASSWORD 'testpass'
+    )
+""")
+
+# Testar conexão
+try:
+    con.execute("""
+        ATTACH 'postgres:testdb' AS pg_test (TYPE postgres, SECRET pg_test)
+    """)
+
+    # Testar query simples
+    result = con.execute("SELECT 1 as test FROM pg_test.pg_catalog.pg_database LIMIT 1").fetchone()
+
+    if result:
+        print("✓ Conexão PostgreSQL bem-sucedida!")
+
+    # Listar databases
+    databases = con.execute("""
+        SELECT datname FROM pg_test.pg_catalog.pg_database
+    """).df()
+    print("\nDatabases disponíveis:")
+    print(databases)
+
+except Exception as e:
+    print(f"✗ Erro na conexão: {e}")
+    print("\nVerifique:")
+    print("- Host e porta corretos")
+    print("- Database existe")
+    print("- Credenciais corretas")
+    print("- Firewall permite conexão")
+    print("- PostgreSQL aceitando conexões remotas (postgresql.conf)")
+
+# Exemplo/Bloco 17
+print("""
+Erros Comuns e Soluções:
+
+1. Connection refused
+   Causa: PostgreSQL/MySQL não está rodando ou não aceita conexões
+   Solução:
+   - Verificar se serviço está ativo
+   - Verificar postgresql.conf: listen_addresses = '*'
+   - Verificar firewall
+
+2. Authentication failed
+   Causa: Credenciais incorretas
+   Solução:
+   - Verificar user e password
+   - Verificar pg_hba.conf (PostgreSQL)
+   - Verificar grants (MySQL)
+
+3. Database does not exist
+   Causa: Nome do database incorreto
+   Solução:
+   - Listar databases: SHOW DATABASES; (MySQL) ou \\l (PostgreSQL)
+   - Verificar case-sensitivity
+
+4. SSL required but not supported
+   Causa: Servidor requer SSL mas cliente não configurou
+   Solução:
+   - Adicionar SSLMODE 'require' no secret (PostgreSQL)
+   - Adicionar SSL_MODE 'REQUIRED' no secret (MySQL)
+
+5. Timeout
+   Causa: Conexão lenta ou servidor não responde
+   Solução:
+   - Aumentar CONNECT_TIMEOUT
+   - Verificar latência de rede
+   - Verificar carga do servidor
+
+6. Too many connections
+   Causa: Limite de conexões atingido no servidor
+   Solução:
+   - Aumentar max_connections no servidor
+   - Fechar conexões não utilizadas
+   - Implementar connection pooling
+""")
+
+# Exemplo/Bloco 18
+import duckdb
+
+print("""
+Privilégios Mínimos - Best Practices:
+
+PostgreSQL:
+-----------
+-- Criar role apenas com SELECT
+CREATE ROLE readonly_user WITH LOGIN PASSWORD 'password';
+GRANT CONNECT ON DATABASE mydb TO readonly_user;
+GRANT USAGE ON SCHEMA public TO readonly_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_user;
+
+-- Prevenir writes
+REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM readonly_user;
+
+MySQL:
+------
+-- Criar user apenas com SELECT
+CREATE USER 'readonly_user'@'%' IDENTIFIED BY 'password';
+GRANT SELECT ON mydb.* TO 'readonly_user'@'%';
+FLUSH PRIVILEGES;
+
+DuckDB Secret:
+--------------
+""")
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+con.execute("""
+    CREATE SECRET pg_readonly (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        DATABASE 'production',
+        USER 'readonly_user',  -- User sem permissões de write
+        PASSWORD 'secure_password',
+        SSLMODE 'verify-full'
+    )
+""")
+
+print("Secret com privilégios mínimos criado!")
+
+# Exemplo/Bloco 19
+import duckdb
+import os
+
+# Ler password de variável de ambiente
+db_password = os.getenv('DB_PASSWORD', 'default_password')
+
+con = duckdb.connect()
+con.execute("INSTALL postgres_scanner; LOAD postgres_scanner;")
+
+# Usar password da variável de ambiente
+con.execute(f"""
+    CREATE SECRET pg_env (
+        TYPE postgres,
+        HOST 'postgres.example.com',
+        DATABASE 'mydb',
+        USER 'myuser',
+        PASSWORD '{db_password}',
+        SSLMODE 'require'
+    )
+""")
+
+print("""
+Password Management Best Practices:
+
+✓ Use variáveis de ambiente (DB_PASSWORD)
+✓ Use secrets managers (AWS Secrets Manager, Azure Key Vault)
+✓ Nunca commite passwords no código
+✓ Use .env files (não commitados no git)
+✓ Rotacione passwords regularmente
+✓ Use passwords fortes e únicos
+✓ Prefira persistent secrets para credenciais permanentes
+
+❌ Nunca:
+- Hardcode passwords no código
+- Commite passwords no git
+- Compartilhe passwords em texto plano
+- Use mesma password em múltiplos ambientes
+""")
+
+# Exemplo/Bloco 20
+# 1. Crie um secret MySQL com SSL_MODE 'REQUIRED'
+# 2. Crie outro com SSL_MODE 'VERIFY_CA' e certificados
+# 3. Compare as configurações usando duckdb_secrets()
+# 4. Tente usar ATTACH (se tiver MySQL disponível)
+
+# Sua solução aqui
+
+# Exemplo/Bloco 21
+# 1. Crie 3 secrets PostgreSQL:
+#    - Um com parâmetros separados
+#    - Um com connection string simples
+#    - Um com connection string com parâmetros SSL
+# 2. Liste todos e verifique os providers
+# 3. Delete todos os secrets
+
+# Sua solução aqui
+
+# Exemplo/Bloco 22
+# 1. Crie um secret MySQL e um PostgreSQL
+# 2. Use ATTACH para ambos
+# 3. Crie uma query que faz JOIN entre tabelas dos dois databases
+# 4. Use which_secret() para verificar qual secret seria usado
+
+# Sua solução aqui
+
+# Exemplo/Bloco 23
+# 1. Crie um secret PostgreSQL com SSL verify-full
+# 2. Configure timeouts apropriados
+# 3. Use uma password de variável de ambiente
+# 4. Documente as decisões de segurança tomadas
+
+# Sua solução aqui
+

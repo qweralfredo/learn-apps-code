@@ -1,256 +1,398 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 1: Introdução a Secrets no DuckDB
-===========================================
-
-Este script demonstra os conceitos básicos de Secrets no DuckDB.
+Secrets-01-introducao-secrets
 """
 
+# Secrets-01-introducao-secrets
 import duckdb
 import os
 
-# Configuração UTF-8 para Windows
-if os.name == 'nt':
-    import sys
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# Exemplo/Bloco 1
+import duckdb
 
-def exemplo_01_criar_secrets_basicos():
-    """Exemplo 1.1: Criar secrets básicos"""
-    print("\n" + "="*60)
-    print("Exemplo 1.1: Criar Secrets Básicos")
-    print("="*60)
+con = duckdb.connect()
 
-    con = duckdb.connect(':memory:')
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+# 1. Interface unificada para diferentes backends
+con.execute("""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        KEY_ID 'my_key',
+        SECRET 'my_secret'
+    )
+""")
 
-    # Secret S3 básico (MOCK - não use credenciais reais!)
-    con.execute("""
-        CREATE SECRET my_s3_bucket (
-            TYPE s3,
-            KEY_ID 'AKIAIOSFODNN7EXAMPLE',
-            SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-            REGION 'us-east-1'
-        )
-    """)
+con.execute("""
+    CREATE SECRET azure_secret (
+        TYPE azure,
+        CONNECTION_STRING 'DefaultEndpointsProtocol=https;...'
+    )
+""")
 
-    print("✓ Secret S3 criado com sucesso!")
+# 2. Uso automático baseado em URL
+# DuckDB escolhe o secret correto automaticamente
+result = con.execute("SELECT * FROM 's3://bucket/file.parquet'").df()
+print(result)
 
-    # Verificar secret
-    secret_info = con.execute("""
-        SELECT name, type, provider, scope
-        FROM duckdb_secrets()
-        WHERE name = 'my_s3_bucket'
-    """).fetchone()
+# 3. Listar secrets
+secrets = con.execute("SELECT * FROM duckdb_secrets()").df()
+print("\nSecrets configurados:")
+print(secrets[['name', 'type', 'scope']])
 
-    if secret_info:
-        print(f"\nNome: {secret_info[0]}")
-        print(f"Tipo: {secret_info[1]}")
-        print(f"Provider: {secret_info[2]}")
-        print(f"Scope: {secret_info[3] if secret_info[3] else '(global)'}")
+# Exemplo/Bloco 2
+import duckdb
 
-    con.close()
+con = duckdb.connect()
 
+# Carregar extensions necessárias
+con.execute("INSTALL httpfs; LOAD httpfs;")
+con.execute("INSTALL azure; LOAD azure;")
 
-def exemplo_02_multiplos_tipos():
-    """Exemplo 1.2: Criar secrets de diferentes tipos"""
-    print("\n" + "="*60)
-    print("Exemplo 1.2: Múltiplos Tipos de Secrets")
-    print("="*60)
+# Ver tipos de secrets disponíveis
+print("Tipos de secrets suportados:")
+print("- s3: AWS S3")
+print("- r2: Cloudflare R2")
+print("- gcs: Google Cloud Storage")
+print("- azure: Azure Blob Storage")
+print("- http: HTTP/HTTPS")
+print("- huggingface: Hugging Face")
+print("- iceberg: Iceberg REST Catalog")
+print("- mysql: MySQL Database")
+print("- postgres: PostgreSQL Database")
 
-    con = duckdb.connect(':memory:')
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+# Exemplo/Bloco 3
+import duckdb
 
-    # Secret S3
-    con.execute("""
-        CREATE SECRET aws_data (
-            TYPE s3,
-            KEY_ID 'AKIAIOSFODNN7EXAMPLE',
-            SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-            REGION 'us-east-1'
-        )
-    """)
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
-    # Secret HTTP com bearer token
-    con.execute("""
-        CREATE SECRET api_auth (
-            TYPE http,
-            BEARER_TOKEN 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example'
-        )
-    """)
+# Secret para S3
+con.execute("""
+    CREATE SECRET aws_data (
+        TYPE s3,
+        KEY_ID 'AKIAIOSFODNN7EXAMPLE',
+        SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        REGION 'us-east-1'
+    )
+""")
 
-    # Listar todos os secrets
-    secrets = con.execute("SELECT name, type, provider FROM duckdb_secrets()").df()
+# Secret para HTTP com autenticação
+con.execute("""
+    CREATE SECRET api_auth (
+        TYPE http,
+        BEARER_TOKEN 'my_bearer_token_here'
+    )
+""")
 
-    print("\nSecrets criados:")
-    print(secrets)
+# Listar todos os secrets
+secrets = con.execute("SELECT name, type, provider FROM duckdb_secrets()").df()
+print("Secrets criados:")
+print(secrets)
 
-    con.close()
+# Exemplo/Bloco 4
+import duckdb
 
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
-def exemplo_03_listar_secrets():
-    """Exemplo 1.3: Listar e filtrar secrets"""
-    print("\n" + "="*60)
-    print("Exemplo 1.3: Listar e Filtrar Secrets")
-    print("="*60)
+# Criar secret para S3
+con.execute("""
+    CREATE SECRET my_s3_bucket (
+        TYPE s3,
+        KEY_ID 'AKIAIOSFODNN7EXAMPLE',
+        SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        REGION 'us-east-1'
+    )
+""")
 
-    con = duckdb.connect(':memory:')
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+print("Secret criado com sucesso!")
 
-    # Criar alguns secrets
-    con.execute("CREATE SECRET s1 (TYPE s3, KEY_ID 'k1', SECRET 's1')")
-    con.execute("CREATE SECRET s2 (TYPE s3, KEY_ID 'k2', SECRET 's2')")
-    con.execute("CREATE SECRET h1 (TYPE http, BEARER_TOKEN 'token')")
+# Verificar secret
+secret_info = con.execute("""
+    SELECT name, type, provider, scope
+    FROM duckdb_secrets()
+    WHERE name = 'my_s3_bucket'
+""").fetchone()
 
-    # Listar todos
-    all_secrets = con.execute("SELECT * FROM duckdb_secrets()").df()
-    print("\nTodos os secrets:")
-    print(all_secrets[['name', 'type', 'provider', 'persistent', 'storage']])
+print(f"\nNome: {secret_info[0]}")
+print(f"Tipo: {secret_info[1]}")
+print(f"Provider: {secret_info[2]}")
+print(f"Scope: {secret_info[3]}")
 
-    # Filtrar apenas S3
-    s3_secrets = con.execute("""
-        SELECT name, type, provider
-        FROM duckdb_secrets()
-        WHERE type = 's3'
-    """).df()
+# Usar secret para ler dados
+# (assumindo que você tem um bucket S3 configurado)
+# result = con.execute("SELECT * FROM 's3://my-bucket/data.parquet'").df()
+# print(result)
 
-    print("\nApenas secrets S3:")
-    print(s3_secrets)
+# Exemplo/Bloco 5
+import duckdb
 
-    con.close()
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
+# Criar secret apenas se não existir
+con.execute("""
+    CREATE SECRET IF NOT EXISTS my_s3 (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret'
+    )
+""")
 
-def exemplo_04_deletar_secrets():
-    """Exemplo 1.4: Deletar secrets"""
-    print("\n" + "="*60)
-    print("Exemplo 1.4: Deletar Secrets")
-    print("="*60)
+print("Secret criado (ou já existia)")
 
-    con = duckdb.connect(':memory:')
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+# Tentar criar novamente - não causa erro
+con.execute("""
+    CREATE SECRET IF NOT EXISTS my_s3 (
+        TYPE s3,
+        KEY_ID 'another_key',
+        SECRET 'another_secret'
+    )
+""")
 
-    # Criar secret
-    con.execute("CREATE SECRET temp_secret (TYPE s3, KEY_ID 'k', SECRET 's')")
+print("Comando executado com sucesso (secret existente não foi substituído)")
 
-    print("Antes de deletar:")
-    print(con.execute("SELECT name FROM duckdb_secrets()").df())
+# Exemplo/Bloco 6
+import duckdb
 
-    # Deletar secret
-    con.execute("DROP SECRET temp_secret")
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
-    print("\nDepois de deletar:")
-    print(con.execute("SELECT name FROM duckdb_secrets()").df())
+# Criar secret
+con.execute("""
+    CREATE SECRET s3_auto (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret',
+        REGION 'us-east-1'
+    )
+""")
 
-    # DROP IF EXISTS (não causa erro se não existir)
-    con.execute("DROP SECRET IF EXISTS non_existent_secret")
-    print("\n✓ DROP IF EXISTS executado sem erro")
+# DuckDB usa automaticamente o secret para queries S3
+# Não é necessário referenciar o secret explicitamente
+# result = con.execute("""
+#     SELECT * FROM 's3://my-bucket/data.parquet'
+# """).df()
 
-    con.close()
+print("Secret será usado automaticamente para URLs s3://")
 
+# Exemplo/Bloco 7
+import duckdb
 
-def exemplo_05_which_secret():
-    """Exemplo 1.5: Usar which_secret() para verificar matching"""
-    print("\n" + "="*60)
-    print("Exemplo 1.5: which_secret() - Verificar Matching")
-    print("="*60)
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
-    con = duckdb.connect(':memory:')
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+# Criar múltiplos secrets com diferentes scopes
+con.execute("""
+    CREATE SECRET bucket1 (
+        TYPE s3,
+        KEY_ID 'key1',
+        SECRET 'secret1',
+        SCOPE 's3://bucket1/'
+    )
+""")
 
-    # Criar secrets com diferentes scopes
-    con.execute("""
-        CREATE SECRET bucket1 (
-            TYPE s3,
-            KEY_ID 'key1',
-            SECRET 'secret1',
-            SCOPE 's3://bucket1/'
-        )
-    """)
+con.execute("""
+    CREATE SECRET bucket2 (
+        TYPE s3,
+        KEY_ID 'key2',
+        SECRET 'secret2',
+        SCOPE 's3://bucket2/'
+    )
+""")
 
-    con.execute("""
-        CREATE SECRET bucket2 (
-            TYPE s3,
-            KEY_ID 'key2',
-            SECRET 'secret2',
-            SCOPE 's3://bucket2/'
-        )
-    """)
+# Verificar qual secret será usado para cada URL
+secret1 = con.execute("""
+    SELECT * FROM which_secret('s3://bucket1/file.parquet', 's3')
+""").df()
 
-    # Verificar qual secret será usado para cada URL
-    urls = [
-        's3://bucket1/file.parquet',
-        's3://bucket2/data.csv',
-        's3://bucket3/other.parquet'
-    ]
+secret2 = con.execute("""
+    SELECT * FROM which_secret('s3://bucket2/file.parquet', 's3')
+""").df()
 
-    print("\nVerificando matching de secrets:\n")
-    for url in urls:
-        try:
-            result = con.execute(f"""
-                SELECT name FROM which_secret('{url}', 's3')
-            """).fetchone()
+print("Para s3://bucket1/:")
+print(secret1[['name', 'scope']])
 
-            if result:
-                print(f"{url:40} → {result[0]}")
-            else:
-                print(f"{url:40} → Nenhum secret encontrado")
-        except Exception as e:
-            print(f"{url:40} → Erro: {e}")
+print("\nPara s3://bucket2/:")
+print(secret2[['name', 'scope']])
 
-    con.close()
+# Exemplo/Bloco 8
+import duckdb
 
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
-def exercicio_01_pratico():
-    """Exercício prático 1: Criar, listar e deletar secrets"""
-    print("\n" + "="*60)
-    print("EXERCÍCIO PRÁTICO 1: Gerenciamento de Secrets")
-    print("="*60)
+# Criar alguns secrets
+con.execute("CREATE SECRET s1 (TYPE s3, KEY_ID 'k1', SECRET 's1')")
+con.execute("CREATE SECRET s2 (TYPE s3, KEY_ID 'k2', SECRET 's2')")
+con.execute("CREATE SECRET h1 (TYPE http, BEARER_TOKEN 'token')")
 
-    con = duckdb.connect(':memory:')
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+# Listar todos os secrets
+all_secrets = con.execute("SELECT * FROM duckdb_secrets()").df()
 
-    # 1. Criar 3 secrets S3
-    print("\n1. Criando 3 secrets S3...")
-    con.execute("CREATE SECRET s3_prod (TYPE s3, KEY_ID 'prod_key', SECRET 'prod_secret')")
-    con.execute("CREATE SECRET s3_dev (TYPE s3, KEY_ID 'dev_key', SECRET 'dev_secret')")
-    con.execute("CREATE SECRET s3_test (TYPE s3, KEY_ID 'test_key', SECRET 'test_secret')")
+print("Todos os secrets:")
+print(all_secrets[['name', 'type', 'provider', 'persistent', 'storage']])
 
-    # 2. Listar todos
-    print("\n2. Listando todos os secrets:")
-    secrets = con.execute("SELECT name, type FROM duckdb_secrets()").df()
-    print(secrets)
+# Exemplo/Bloco 9
+import duckdb
 
-    # 3. Deletar um secret
-    print("\n3. Deletando secret 's3_test'...")
-    con.execute("DROP SECRET s3_test")
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
-    # 4. Listar novamente
-    print("\n4. Listando secrets restantes:")
-    secrets_after = con.execute("SELECT name, type FROM duckdb_secrets()").df()
-    print(secrets_after)
+# Criar secrets
+con.execute("CREATE SECRET aws1 (TYPE s3, KEY_ID 'k1', SECRET 's1')")
+con.execute("CREATE SECRET aws2 (TYPE s3, KEY_ID 'k2', SECRET 's2')")
+con.execute("CREATE SECRET api (TYPE http, BEARER_TOKEN 't')")
 
-    print("\n✓ Exercício concluído!")
+# Listar apenas secrets do tipo S3
+s3_secrets = con.execute("""
+    SELECT name, type, provider
+    FROM duckdb_secrets()
+    WHERE type = 's3'
+""").df()
 
-    con.close()
+print("Secrets S3:")
+print(s3_secrets)
 
+# Listar apenas secrets persistentes
+persistent_secrets = con.execute("""
+    SELECT name, type, persistent
+    FROM duckdb_secrets()
+    WHERE persistent = true
+""").df()
 
-def main():
-    """Função principal - executa todos os exemplos"""
-    print("\n" + "="*70)
-    print(" " * 10 + "CAPÍTULO 1: INTRODUÇÃO A SECRETS NO DUCKDB")
-    print("="*70)
+print(f"\nSecrets persistentes: {len(persistent_secrets)}")
 
-    exemplo_01_criar_secrets_basicos()
-    exemplo_02_multiplos_tipos()
-    exemplo_03_listar_secrets()
-    exemplo_04_deletar_secrets()
-    exemplo_05_which_secret()
-    exercicio_01_pratico()
+# Exemplo/Bloco 10
+import duckdb
 
-    print("\n" + "="*70)
-    print("✓ Todos os exemplos do Capítulo 1 foram executados com sucesso!")
-    print("="*70)
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
 
+# Criar secret
+con.execute("CREATE SECRET temp_secret (TYPE s3, KEY_ID 'k', SECRET 's')")
 
-if __name__ == "__main__":
-    main()
+# Verificar
+print("Antes de deletar:")
+print(con.execute("SELECT name FROM duckdb_secrets()").df())
+
+# Deletar secret
+con.execute("DROP SECRET temp_secret")
+
+# Verificar novamente
+print("\nDepois de deletar:")
+print(con.execute("SELECT name FROM duckdb_secrets()").df())
+
+# Exemplo/Bloco 11
+import duckdb
+
+con = duckdb.connect()
+
+# Deletar secret que pode não existir
+con.execute("DROP SECRET IF EXISTS non_existent_secret")
+print("Comando executado sem erro (mesmo se secret não existia)")
+
+# Sem IF EXISTS causaria erro se secret não existir
+# con.execute("DROP SECRET non_existent_secret")  # ❌ Erro!
+
+# Exemplo/Bloco 12
+import duckdb
+
+# Temporary secrets existem apenas durante a sessão
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Criar temporary secret (padrão)
+con.execute("""
+    CREATE SECRET temp_s3 (
+        TYPE s3,
+        KEY_ID 'temporary_key',
+        SECRET 'temporary_secret'
+    )
+""")
+
+# Verificar
+secrets = con.execute("""
+    SELECT name, persistent, storage
+    FROM duckdb_secrets()
+""").df()
+
+print("Secret temporário:")
+print(secrets)
+
+# Fechar conexão
+con.close()
+
+# Reabrir - secret não existe mais
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+secrets_after = con.execute("SELECT name FROM duckdb_secrets()").df()
+print(f"\nSecrets após reconectar: {len(secrets_after)}")
+
+# Exemplo/Bloco 13
+import duckdb
+
+# Persistent secrets são salvos em disco
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Criar persistent secret
+con.execute("""
+    CREATE PERSISTENT SECRET persistent_s3 (
+        TYPE s3,
+        KEY_ID 'persistent_key',
+        SECRET 'persistent_secret'
+    )
+""")
+
+# Verificar
+secrets = con.execute("""
+    SELECT name, persistent, storage
+    FROM duckdb_secrets()
+""").df()
+
+print("Secret persistente:")
+print(secrets)
+
+# Fechar e reabrir
+con.close()
+con = duckdb.connect()
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Secret ainda existe!
+secrets_after = con.execute("""
+    SELECT name FROM duckdb_secrets()
+""").df()
+
+print(f"\nSecrets após reconectar: {len(secrets_after)}")
+print(secrets_after)
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET persistent_s3")
+
+# Exemplo/Bloco 14
+# 1. Crie 3 secrets do tipo S3 com nomes diferentes
+# 2. Liste todos os secrets criados
+# 3. Delete um dos secrets
+# 4. Liste novamente para confirmar
+
+# Sua solução aqui
+
+# Exemplo/Bloco 15
+# 1. Crie um secret temporário
+# 2. Crie um secret persistente
+# 3. Liste ambos e compare o campo 'persistent'
+# 4. Feche a conexão e reabra
+# 5. Verifique quais secrets ainda existem
+# 6. Delete o secret persistente
+
+# Sua solução aqui
+
+# Exemplo/Bloco 16
+# 1. Crie um secret do tipo HTTP com um bearer token
+# 2. Verifique se foi criado corretamente
+# 3. Use which_secret() para verificar qual secret seria usado
+#    para uma URL 'https://api.example.com/data'
+
+# Sua solução aqui
+

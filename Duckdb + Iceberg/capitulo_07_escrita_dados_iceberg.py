@@ -1,0 +1,217 @@
+# -*- coding: utf-8 -*-
+"""
+Iceberg-07-escrita-dados-iceberg
+"""
+
+# Iceberg-07-escrita-dados-iceberg
+import duckdb
+import os
+
+# Exemplo/Bloco 1
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# ... configurar catálogo ...
+
+# Criar tabela
+con.execute("""
+    CREATE TABLE iceberg_catalog.default.customers (
+        customer_id INTEGER,
+        customer_name VARCHAR,
+        email VARCHAR,
+        region VARCHAR,
+        created_at TIMESTAMP
+    )
+""")
+
+print("✅ Tabela criada com sucesso")
+
+# Exemplo/Bloco 2
+import duckdb
+import pandas as pd
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+
+# ... configurar catálogo ...
+
+# Dados de exemplo
+data = pd.DataFrame({
+    'order_id': range(1, 101),
+    'customer_id': range(100, 200),
+    'total_amount': [100.0 + i * 10 for i in range(100)],
+    'order_date': pd.date_range('2024-01-01', periods=100)
+})
+
+# Inserir DataFrame em tabela Iceberg
+con.execute("""
+    INSERT INTO iceberg_catalog.default.sales
+    SELECT * FROM data
+""")
+
+print(f"✅ Inseridos {len(data)} registros")
+
+# Exemplo/Bloco 3
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+
+# ... configurar catálogo ...
+
+# Atualizar preços
+con.execute("""
+    UPDATE iceberg_catalog.default.simple_table
+    SET total_amount = total_amount + 100
+    WHERE customer_id = 101
+""")
+
+print("✅ Dados atualizados")
+
+# Exemplo/Bloco 4
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+
+# ... configurar catálogo ...
+
+# Deletar dados antigos
+deleted_count = con.execute("""
+    DELETE FROM iceberg_catalog.default.logs
+    WHERE event_timestamp < current_timestamp - INTERVAL '30 days'
+    RETURNING count(*)
+""").fetchone()[0]
+
+print(f"✅ Deletados {deleted_count} registros")
+
+# Exemplo/Bloco 5
+import duckdb
+import pandas as pd
+from datetime import datetime
+
+class IcebergWriter:
+    def __init__(self, catalog_config):
+        self.con = duckdb.connect()
+        self.con.execute("LOAD iceberg")
+        self.con.execute("LOAD httpfs")
+
+        # Configurar catálogo
+        self.con.execute(f"""
+            CREATE SECRET catalog_secret (
+                TYPE iceberg,
+                CLIENT_ID '{catalog_config['client_id']}',
+                CLIENT_SECRET '{catalog_config['client_secret']}',
+                OAUTH2_SERVER_URI '{catalog_config['oauth_uri']}'
+            )
+        """)
+
+        self.con.execute(f"""
+            ATTACH '{catalog_config['warehouse']}' AS catalog (
+                TYPE iceberg,
+                SECRET catalog_secret,
+                ENDPOINT '{catalog_config['endpoint']}'
+            )
+        """)
+
+    def create_table(self, table_name, schema):
+        """Cria tabela Iceberg"""
+        columns = ', '.join([f"{col} {dtype}" for col, dtype in schema.items()])
+
+        self.con.execute(f"""
+            CREATE TABLE IF NOT EXISTS catalog.default.{table_name} (
+                {columns}
+            )
+        """)
+
+    def insert_data(self, table_name, data):
+        """Insere dados (DataFrame ou dict)"""
+        if isinstance(data, pd.DataFrame):
+            self.con.execute(f"""
+                INSERT INTO catalog.default.{table_name}
+                SELECT * FROM data
+            """)
+        else:
+            # Converter dict para DataFrame
+            df = pd.DataFrame([data])
+            self.con.execute(f"""
+                INSERT INTO catalog.default.{table_name}
+                SELECT * FROM df
+            """)
+
+        return True
+
+    def update_data(self, table_name, set_clause, where_clause):
+        """Atualiza dados"""
+        self.con.execute(f"""
+            UPDATE catalog.default.{table_name}
+            SET {set_clause}
+            WHERE {where_clause}
+        """)
+
+    def delete_old_data(self, table_name, date_column, days_to_keep=30):
+        """Deleta dados antigos"""
+        self.con.execute(f"""
+            DELETE FROM catalog.default.{table_name}
+            WHERE {date_column} < current_date - INTERVAL '{days_to_keep} days'
+        """)
+
+# Usar
+config = {
+    'warehouse': 'my_warehouse',
+    'endpoint': 'https://catalog.example.com',
+    'client_id': 'my_client',
+    'client_secret': 'my_secret',
+    'oauth_uri': 'https://catalog.example.com/oauth/tokens'
+}
+
+writer = IcebergWriter(config)
+
+# Criar tabela
+writer.create_table('events', {
+    'event_id': 'INTEGER',
+    'user_id': 'INTEGER',
+    'event_type': 'VARCHAR',
+    'timestamp': 'TIMESTAMP'
+})
+
+# Inserir dados
+events_data = pd.DataFrame({
+    'event_id': [1, 2, 3],
+    'user_id': [100, 101, 102],
+    'event_type': ['login', 'click', 'purchase'],
+    'timestamp': pd.date_range('2024-01-01', periods=3)
+})
+
+writer.insert_data('events', events_data)
+print("✅ Pipeline concluído")
+
+# Exemplo/Bloco 6
+# ✅ BOM: Inserir em batches
+for batch in data_batches:
+    con.execute("""
+        INSERT INTO iceberg_catalog.default.sales
+        SELECT * FROM batch
+    """)
+
+# ❌ RUIM: Inserir linha por linha
+for row in rows:
+    con.execute(f"""
+        INSERT INTO iceberg_catalog.default.sales
+        VALUES ({row})
+    """)
+
+# Exemplo/Bloco 7
+# Usar transações para consistência
+con.begin()
+try:
+    con.execute("INSERT INTO table1 ...")
+    con.execute("UPDATE table2 ...")
+    con.commit()
+except Exception as e:
+    con.rollback()
+    print(f"Erro: {e}")
+

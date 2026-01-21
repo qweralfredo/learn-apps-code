@@ -1,314 +1,320 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 2: Instalação e Configuração da Extensão Iceberg
-Curso: DuckDB + Apache Iceberg
-
-Este script demonstra instalação e configuração do Iceberg no DuckDB
+Iceberg-02-instalacao-configuracao
 """
 
+# Iceberg-02-instalacao-configuracao
 import duckdb
-import sys
 import os
 
-# Configurar encoding UTF-8 para Windows
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
+# Exemplo/Bloco 1
+import duckdb
 
-def instalacao_automatica():
-    """Demonstra instalação automática"""
-    print("\n" + "="*60)
-    print("1. INSTALAÇÃO AUTOMÁTICA")
-    print("="*60)
+# Criar conexão
+con = duckdb.connect()
 
+# Instalar e carregar extensão
+con.execute("INSTALL iceberg")
+con.execute("LOAD iceberg")
+
+# Verificar instalação
+result = con.execute("""
+    SELECT extension_name, loaded, installed
+    FROM duckdb_extensions()
+    WHERE extension_name = 'iceberg'
+""").fetchone()
+
+print(f"Iceberg: installed={result[2]}, loaded={result[1]}")
+
+# Exemplo/Bloco 2
+import duckdb
+
+def setup_duckdb_iceberg():
+    """
+    Configura DuckDB com extensões necessárias para Iceberg
+    """
     con = duckdb.connect()
 
-    # A primeira vez que usar, DuckDB instala automaticamente
-    print("Tentando usar iceberg_scan (instalação automática)...")
-    print("Nota: Precisa de uma tabela Iceberg válida para funcionar\n")
+    # Extensões necessárias
+    extensions = ['iceberg', 'httpfs']  # httpfs para S3/HTTP
 
-def instalacao_manual():
-    """Demonstra instalação manual"""
-    print("\n" + "="*60)
-    print("2. INSTALAÇÃO MANUAL")
-    print("="*60)
+    for ext in extensions:
+        print(f"Instalando {ext}...")
+        con.execute(f"INSTALL {ext}")
+        con.execute(f"LOAD {ext}")
 
-    con = duckdb.connect()
-
-    # Instalar extensão
-    print("Instalando extensão Iceberg...")
-    con.execute("INSTALL iceberg")
-    print("✅ Instalado")
-
-    # Carregar extensão
-    print("Carregando extensão Iceberg...")
-    con.execute("LOAD iceberg")
-    print("✅ Carregado")
-
+    print("✅ Setup completo!")
     return con
 
-def verificar_instalacao(con):
-    """Verifica se extensão está instalada"""
-    print("\n" + "="*60)
-    print("3. VERIFICAR INSTALAÇÃO")
-    print("="*60)
+# Usar
+con = setup_duckdb_iceberg()
 
-    result = con.execute("""
-        SELECT extension_name, loaded, installed
-        FROM duckdb_extensions()
-        WHERE extension_name = 'iceberg'
-    """).fetchone()
+# Exemplo/Bloco 3
+import duckdb
 
-    if result:
-        print(f"Extensão: {result[0]}")
-        print(f"Loaded: {result[1]}")
-        print(f"Installed: {result[2]}")
-        print("✅ Iceberg instalado corretamente")
-    else:
-        print("❌ Iceberg não encontrado")
+con = duckdb.connect()
 
-def atualizar_extensoes(con):
-    """Atualiza extensões"""
-    print("\n" + "="*60)
-    print("4. ATUALIZAR EXTENSÕES")
-    print("="*60)
+# Setup para trabalhar com Iceberg em múltiplos cloud providers
+con.execute("INSTALL iceberg")
+con.execute("INSTALL httpfs")
+con.execute("INSTALL azure")
 
-    print("Atualizando extensões...")
-    con.execute("UPDATE EXTENSIONS")
-    print("✅ Extensões atualizadas")
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+con.execute("LOAD azure")
 
-def instalar_extensoes_relacionadas(con):
-    """Instala extensões necessárias para cloud storage"""
-    print("\n" + "="*60)
-    print("5. EXTENSÕES RELACIONADAS (Cloud Storage)")
-    print("="*60)
+print("Pronto para usar Iceberg em S3, Azure e HTTP!")
 
-    # httpfs para S3/HTTP
-    print("Instalando httpfs (para S3/HTTP)...")
-    con.execute("INSTALL httpfs")
-    con.execute("LOAD httpfs")
-    print("✅ httpfs instalado")
+# Exemplo/Bloco 4
+import duckdb
+import os
 
-    # azure (opcional, para Azure Storage)
-    print("\nInstalando azure (para Azure Blob Storage)...")
-    try:
-        con.execute("INSTALL azure")
-        con.execute("LOAD azure")
-        print("✅ azure instalado")
-    except Exception as e:
-        print(f"⚠️  azure não disponível: {e}")
+# Configuração para desenvolvimento local
+con = duckdb.connect('dev.duckdb')  # Banco persistente
 
-def configuracoes_basicas(con):
-    """Demonstra configurações básicas"""
-    print("\n" + "="*60)
-    print("6. CONFIGURAÇÕES BÁSICAS")
-    print("="*60)
+# Extensões
+con.execute("INSTALL iceberg")
+con.execute("LOAD iceberg")
 
-    # Threads
-    print("Configurando threads...")
-    con.execute("SET threads = 4")
-    threads = con.execute("SELECT current_setting('threads')").fetchone()[0]
-    print(f"Threads: {threads}")
+# Configurações de desenvolvimento
+con.execute("SET threads = 2")
+con.execute("SET memory_limit = '2GB'")
+con.execute("SET unsafe_enable_version_guessing = true")  # Dev only!
 
-    # Memória
-    print("\nConfigurando memória...")
-    con.execute("SET memory_limit = '4GB'")
-    memory = con.execute("SELECT current_setting('memory_limit')").fetchone()[0]
-    print(f"Memory limit: {memory}")
+# Criar diretório para testes
+os.makedirs('iceberg_tables', exist_ok=True)
 
-def setup_desenvolvimento():
-    """Configuração para ambiente de desenvolvimento"""
-    print("\n" + "="*60)
-    print("7. SETUP PARA DESENVOLVIMENTO")
-    print("="*60)
+print("Ambiente de desenvolvimento pronto!")
 
-    # Banco em memória para dev
-    con = duckdb.connect(':memory:')
+# Exemplo/Bloco 5
+import duckdb
 
-    # Extensões
-    con.execute("INSTALL iceberg")
-    con.execute("LOAD iceberg")
+# Configuração para produção
+con = duckdb.connect('prod.duckdb')
 
-    # Configurações de dev
-    con.execute("SET threads = 2")
-    con.execute("SET memory_limit = '2GB'")
+# Extensões
+con.execute("INSTALL iceberg")
+con.execute("INSTALL httpfs")
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
 
-    # Habilitar version guessing (apenas dev!)
-    con.execute("SET unsafe_enable_version_guessing = true")
+# Configurações de produção
+con.execute("SET threads = 8")
+con.execute("SET memory_limit = '16GB'")
+con.execute("SET temp_directory = '/fast/ssd/temp'")
 
-    print("Configurações de desenvolvimento:")
-    print("  - Banco: in-memory")
-    print("  - Threads: 2")
-    print("  - Memory: 2GB")
-    print("  - Version guessing: HABILITADO (apenas dev!)")
-    print("✅ Ambiente de desenvolvimento configurado")
+# NÃO habilitar unsafe features em produção!
+# con.execute("SET unsafe_enable_version_guessing = true")  # ❌
 
-    return con
+print("Ambiente de produção pronto!")
 
-def setup_producao():
-    """Configuração para ambiente de produção"""
-    print("\n" + "="*60)
-    print("8. SETUP PARA PRODUÇÃO")
-    print("="*60)
+# Exemplo/Bloco 6
+# init_iceberg.py
+import duckdb
 
-    # Banco persistente para produção
-    db_path = 'prod_example.duckdb'
-    con = duckdb.connect(db_path)
+con = duckdb.connect()
+con.execute("INSTALL iceberg")
+con.execute("INSTALL httpfs")
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
 
-    # Extensões
-    con.execute("INSTALL iceberg")
-    con.execute("INSTALL httpfs")
-    con.execute("LOAD iceberg")
-    con.execute("LOAD httpfs")
+print("Container DuckDB+Iceberg pronto!")
 
-    # Configurações de produção
-    con.execute("SET threads = 8")
-    con.execute("SET memory_limit = '16GB'")
+# Exemplo/Bloco 7
+import duckdb
 
-    print("Configurações de produção:")
-    print(f"  - Banco: {db_path}")
-    print("  - Threads: 8")
-    print("  - Memory: 16GB")
-    print("  - Version guessing: DESABILITADO (segurança)")
-    print("✅ Ambiente de produção configurado")
-
-    # Limpar arquivo de exemplo
-    con.close()
-    if os.path.exists(db_path):
-        os.remove(db_path)
-
-def classe_helper_configuracao():
-    """Classe helper para configuração reutilizável"""
-    print("\n" + "="*60)
-    print("9. CLASSE HELPER DE CONFIGURAÇÃO")
-    print("="*60)
-
-    class IcebergConfig:
-        """Configuração padrão para DuckDB + Iceberg"""
-
-        @staticmethod
-        def setup(db_path=':memory:', threads=4, memory='4GB'):
-            """
-            Configura DuckDB com Iceberg
-
-            Args:
-                db_path: Caminho do banco (default: in-memory)
-                threads: Número de threads
-                memory: Limite de memória
-            """
-            # Conectar
-            con = duckdb.connect(db_path)
-
-            # Instalar extensões
-            extensions = ['iceberg', 'httpfs']
-            for ext in extensions:
-                con.execute(f"INSTALL {ext}")
-                con.execute(f"LOAD {ext}")
-
-            # Configurações
-            con.execute(f"SET threads = {threads}")
-            con.execute(f"SET memory_limit = '{memory}'")
-
-            return con
-
-    # Usar
-    print("Exemplo de uso:")
-    print("""
-    from iceberg_config import IcebergConfig
-
-    # Desenvolvimento
-    dev_con = IcebergConfig.setup(threads=2, memory='2GB')
-
-    # Produção
-    prod_con = IcebergConfig.setup(
-        db_path='prod.duckdb',
-        threads=16,
-        memory='32GB'
-    )
-    """)
-
-def teste_instalacao():
-    """Testa instalação básica"""
-    print("\n" + "="*60)
-    print("10. TESTE DE INSTALAÇÃO")
-    print("="*60)
-
+def test_iceberg_basic():
+    """Testa instalação básica do Iceberg"""
     con = duckdb.connect()
 
     try:
         con.execute("INSTALL iceberg")
         con.execute("LOAD iceberg")
         print("✅ Extensão Iceberg carregada com sucesso")
-
-        # Verificar versão
-        version = con.execute("SELECT version()").fetchone()[0]
-        print(f"✅ DuckDB versão: {version}")
-
         return True
     except Exception as e:
         print(f"❌ Erro ao carregar Iceberg: {e}")
         return False
 
-def troubleshooting():
-    """Demonstra soluções para problemas comuns"""
-    print("\n" + "="*60)
-    print("11. TROUBLESHOOTING COMUM")
-    print("="*60)
+test_iceberg_basic()
 
-    print("""
-    Problema 1: Extensão não carrega
-    Solução:
-        con.execute("INSTALL iceberg")
-        con.execute("LOAD iceberg")
+# Exemplo/Bloco 8
+import duckdb
+import os
 
-    Problema 2: Versão incompatível
-    Solução:
-        # Iceberg requer DuckDB >= 1.4.0
-        pip install --upgrade duckdb
+def test_iceberg_local():
+    """Testa leitura de tabela Iceberg local"""
+    con = duckdb.connect()
+    con.execute("LOAD iceberg")
 
-    Problema 3: Problemas de rede/firewall
-    Solução:
-        # Verificar conectividade
-        # Configurar proxy se necessário
-        # Testar acesso a extensions.duckdb.org
+    # Criar tabela de teste simples
+    # (assumindo que você tem uma tabela Iceberg de exemplo)
+    test_table = 'data/iceberg/test_table'
 
-    Problema 4: Permissões
-    Solução:
-        # Windows: Executar como administrador
-        # Linux/Mac: Verificar permissões de escrita
-    """)
+    if os.path.exists(test_table):
+        try:
+            result = con.execute(f"""
+                SELECT count(*) FROM iceberg_scan('{test_table}')
+            """).fetchone()
 
-def main():
-    """Função principal"""
-    print("="*60)
-    print("CAPÍTULO 2: Instalação e Configuração")
-    print("="*60)
+            print(f"✅ Tabela Iceberg lida com sucesso: {result[0]} linhas")
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao ler tabela: {e}")
+            return False
+    else:
+        print(f"ℹ️  Tabela de teste não encontrada em {test_table}")
+        return None
 
-    # Demonstrações
-    instalacao_automatica()
-    con = instalacao_manual()
-    verificar_instalacao(con)
-    atualizar_extensoes(con)
-    instalar_extensoes_relacionadas(con)
-    configuracoes_basicas(con)
-    setup_desenvolvimento()
-    setup_producao()
-    classe_helper_configuracao()
-    teste_instalacao()
-    troubleshooting()
+test_iceberg_local()
 
-    print("\n" + "="*60)
-    print("EXERCÍCIOS PRÁTICOS:")
-    print("="*60)
-    print("""
-    1. Instale a extensão Iceberg no DuckDB
-    2. Verifique se todas as extensões necessárias estão instaladas
-    3. Configure um ambiente de desenvolvimento local
-    4. Teste diferentes configurações de threads e memória
-    5. Crie um módulo de configuração reutilizável
-    """)
+# Exemplo/Bloco 9
+import duckdb
 
-    print("\n✅ Capítulo 2 concluído!")
-    print("📚 Próximo: Capítulo 3 - Leitura de Tabelas Iceberg")
+def test_iceberg_s3():
+    """Testa leitura de tabela Iceberg no S3"""
+    con = duckdb.connect()
+    con.execute("LOAD iceberg")
+    con.execute("LOAD httpfs")
 
+    # Tabela pública de exemplo (ajuste para sua tabela)
+    s3_table = 's3://your-bucket/your-table/metadata/v1.metadata.json'
+
+    try:
+        # Configurar credenciais S3 (se necessário)
+        con.execute("""
+            CREATE SECRET s3_secret (
+                TYPE s3,
+                PROVIDER credential_chain
+            )
+        """)
+
+        result = con.execute(f"""
+            SELECT count(*) FROM iceberg_scan('{s3_table}')
+        """).fetchone()
+
+        print(f"✅ Tabela S3 Iceberg lida: {result[0]} linhas")
+        return True
+    except Exception as e:
+        print(f"❌ Erro ao ler S3: {e}")
+        return False
+
+# test_iceberg_s3()  # Descomente e ajuste para seu ambiente
+
+# Exemplo/Bloco 10
+import duckdb
+import logging
+
+# Configurar logging Python
+logging.basicConfig(level=logging.DEBUG)
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+
+# Queries com EXPLAIN para debug
+con.execute("""
+    EXPLAIN SELECT * FROM iceberg_scan('table')
+""").show()
+
+# Exemplo/Bloco 11
+import duckdb
+
+con = duckdb.connect()
+
+try:
+    con.execute("LOAD iceberg")
+except Exception as e:
+    print(f"Erro: {e}")
+    print("Tentando instalar primeiro...")
+    con.execute("INSTALL iceberg")
+    con.execute("LOAD iceberg")
+    print("✅ Instalado e carregado com sucesso")
+
+# Exemplo/Bloco 12
+import duckdb
+
+# Verificar versão do DuckDB
+version = duckdb.__version__
+print(f"DuckDB versão: {version}")
+
+# Iceberg requer DuckDB >= 1.4.0
+if version < '1.4.0':
+    print("⚠️  Iceberg requer DuckDB 1.4.0 ou superior")
+    print("Atualize: pip install --upgrade duckdb")
+else:
+    print("✅ Versão compatível com Iceberg")
+
+# Exemplo/Bloco 13
+import duckdb
+import requests
+
+def check_s3_connectivity():
+    """Verifica conectividade com S3"""
+    try:
+        # Teste básico de conectividade
+        response = requests.get('https://s3.amazonaws.com', timeout=5)
+        print(f"✅ S3 acessível (status: {response.status_code})")
+        return True
+    except Exception as e:
+        print(f"❌ Problema de conectividade: {e}")
+        print("Verifique firewall/proxy")
+        return False
+
+check_s3_connectivity()
+
+# Exemplo/Bloco 14
+# iceberg_config.py
+import duckdb
+
+class IcebergConfig:
+    """Configuração padrão para DuckDB + Iceberg"""
+
+    @staticmethod
+    def setup(db_path=':memory:', config=None):
+        """
+        Configura DuckDB com Iceberg
+
+        Args:
+            db_path: Caminho do banco (default: in-memory)
+            config: Dict com configurações adicionais
+        """
+        # Configuração padrão
+        default_config = {
+            'threads': 4,
+            'memory_limit': '4GB'
+        }
+
+        if config:
+            default_config.update(config)
+
+        # Conectar
+        con = duckdb.connect(db_path, config=default_config)
+
+        # Instalar extensões
+        extensions = ['iceberg', 'httpfs']
+        for ext in extensions:
+            con.execute(f"INSTALL {ext}")
+            con.execute(f"LOAD {ext}")
+
+        return con
+
+# Usar
 if __name__ == "__main__":
-    main()
+    con = IcebergConfig.setup(
+        db_path='my_analytics.duckdb',
+        config={'threads': 8, 'memory_limit': '8GB'}
+    )
+    print("Configuração carregada!")
+
+# Exemplo/Bloco 15
+from iceberg_config import IcebergConfig
+
+# Desenvolvimento
+dev_con = IcebergConfig.setup()
+
+# Produção
+prod_con = IcebergConfig.setup(
+    db_path='prod.duckdb',
+    config={'threads': 16, 'memory_limit': '32GB'}
+)
+

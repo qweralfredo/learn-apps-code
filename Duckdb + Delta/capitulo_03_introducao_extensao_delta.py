@@ -1,309 +1,177 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 3: Introdução à Extensão Delta
-Criação e leitura de tabelas Delta Lake com DuckDB
+capitulo-03-introducao-extensao-delta
 """
 
+# capitulo-03-introducao-extensao-delta
 import duckdb
-import sys
+import os
+
+# Exemplo/Bloco 1
+import duckdb
+from deltalake import write_deltalake
+
+# Criar conexão DuckDB
+con = duckdb.connect()
+
+# Criar DataFrame de exemplo
+df = con.execute("""
+    SELECT
+        i as id,
+        i % 10 as category,
+        i % 2 as partition_col,
+        'value-' || i as description,
+        CURRENT_DATE - (i % 100) * INTERVAL '1 day' as created_date,
+        RANDOM() * 1000 as amount
+    FROM range(0, 10000) tbl(i)
+""").df()
+
+# Escrever como tabela Delta (particionada)
+write_deltalake(
+    "./my_delta_table",
+    df,
+    partition_by=["partition_col"],
+    mode="overwrite"
+)
+
+print("Delta table created successfully!")
+
+# Ler com DuckDB
+result = con.execute("""
+    SELECT
+        partition_col,
+        COUNT(*) as total_rows,
+        AVG(amount) as avg_amount
+    FROM delta_scan('./my_delta_table')
+    GROUP BY partition_col
+    ORDER BY partition_col
+""").fetchdf()
+
+print(result)
+
+# Exemplo/Bloco 2
+from pyspark.sql import SparkSession
+
+# Criar SparkSession com Delta Lake
+spark = SparkSession.builder \
+    .appName("CreateDeltaTable") \
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+    .getOrCreate()
+
+# Criar DataFrame
+df = spark.range(0, 10000).selectExpr(
+    "id",
+    "id % 10 as category",
+    "id % 2 as partition_col",
+    "concat('value-', id) as description"
+)
+
+# Escrever como Delta table
+df.write \
+    .format("delta") \
+    .partitionBy("partition_col") \
+    .mode("overwrite") \
+    .save("./my_delta_table")
+
+print("Delta table created with Spark!")
+
+# Exemplo/Bloco 3
+import duckdb
+from deltalake import write_deltalake
 import pandas as pd
 from pathlib import Path
 
-# Configurar encoding UTF-8 para Windows
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
-
-def criar_tabelas_delta_exemplo():
-    """Criar tabelas Delta de exemplo para demonstração"""
-    print("\n1. CRIANDO TABELAS DELTA DE EXEMPLO")
-    print("-" * 60)
-
-    try:
-        from deltalake import write_deltalake
-
-        base_path = Path("C:/projetos/Cursos/Duckdb + Delta/code/delta_tables")
-        base_path.mkdir(exist_ok=True)
-
-        con = duckdb.connect()
-
-        # 1. Tabela de Clientes
-        print("   Criando tabela 'clientes'...")
-        clientes_df = con.execute("""
-            SELECT
-                i as cliente_id,
-                'Cliente ' || i as nome,
-                ['BR', 'US', 'UK', 'JP'][i % 4 + 1] as pais,
-                CAST('2020-01-01' AS DATE) + (i % 1000) * INTERVAL '1 day' as data_cadastro
-            FROM range(1, 101) tbl(i)
-        """).df()
-
-        write_deltalake(str(base_path / "clientes"), clientes_df, mode="overwrite")
-        print(f"   ✓ Tabela 'clientes' criada com {len(clientes_df)} registros")
-
-        # 2. Tabela de Produtos
-        print("   Criando tabela 'produtos'...")
-        produtos_df = con.execute("""
-            SELECT
-                i as produto_id,
-                'Produto ' || i as nome_produto,
-                ['Eletrônicos', 'Roupas', 'Alimentos', 'Livros'][i % 4 + 1] as categoria,
-                10.0 + RANDOM() * 990 as preco
-            FROM range(1, 51) tbl(i)
-        """).df()
-
-        write_deltalake(str(base_path / "produtos"), produtos_df, mode="overwrite")
-        print(f"   ✓ Tabela 'produtos' criada com {len(produtos_df)} registros")
-
-        # 3. Tabela de Vendas (particionada)
-        print("   Criando tabela 'vendas' (particionada por data)...")
-        vendas_df = con.execute("""
-            SELECT
-                i as venda_id,
-                1 + (i % 100) as cliente_id,
-                1 + (i % 50) as produto_id,
-                1 + (RANDOM() * 5)::INTEGER as quantidade,
-                CAST('2024-01-01' AS DATE) + (i % 90) * INTERVAL '1 day' as data_venda,
-                RANDOM() * 1000 as valor
-            FROM range(1, 1001) tbl(i)
-        """).df()
-
-        # Adicionar coluna de partição
-        vendas_df['ano'] = pd.to_datetime(vendas_df['data_venda']).dt.year
-        vendas_df['mes'] = pd.to_datetime(vendas_df['data_venda']).dt.month
-
-        write_deltalake(
-            str(base_path / "vendas"),
-            vendas_df,
-            partition_by=["ano", "mes"],
-            mode="overwrite"
-        )
-        print(f"   ✓ Tabela 'vendas' criada com {len(vendas_df)} registros (particionada)")
-
-        con.close()
-        return base_path
-
-    except ImportError:
-        print("   ✗ Erro: biblioteca 'deltalake' não instalada")
-        print("   Execute: pip install deltalake")
-        return None
-
-def ler_tabelas_delta(base_path):
-    """Ler e consultar tabelas Delta"""
-    print("\n2. LENDO TABELAS DELTA COM DUCKDB")
-    print("-" * 60)
-
-    if base_path is None:
-        print("   ✗ Tabelas Delta não foram criadas")
-        return
-
+def create_sample_delta_tables():
+    """
+    Criar tabelas Delta de exemplo para aprendizado
+    """
     con = duckdb.connect()
-    con.execute("INSTALL delta")
-    con.execute("LOAD delta")
 
-    # Ler clientes
-    print("\n   a) Tabela Clientes (primeiros 5 registros):")
-    df_clientes = con.execute(f"""
-        SELECT * FROM delta_scan('{base_path}/clientes')
-        ORDER BY cliente_id
-        LIMIT 5
+    # 1. Tabela de Clientes
+    customers_df = con.execute("""
+        SELECT
+            i as customer_id,
+            'Customer ' || i as customer_name,
+            ['US', 'UK', 'BR', 'JP'][i % 4 + 1] as country,
+            CURRENT_DATE - (i % 1000) * INTERVAL '1 day' as signup_date
+        FROM range(1, 1001) tbl(i)
     """).df()
-    print(df_clientes.to_string(index=False))
 
-    # Ler produtos
-    print("\n   b) Tabela Produtos (primeiros 5 registros):")
-    df_produtos = con.execute(f"""
-        SELECT produto_id, nome_produto, categoria, ROUND(preco, 2) as preco
-        FROM delta_scan('{base_path}/produtos')
-        ORDER BY produto_id
-        LIMIT 5
-    """).df()
-    print(df_produtos.to_string(index=False))
+    write_deltalake("./delta_tables/customers", customers_df, mode="overwrite")
 
-    # Ler vendas
-    print("\n   c) Tabela Vendas (primeiros 5 registros):")
-    df_vendas = con.execute(f"""
-        SELECT venda_id, cliente_id, produto_id, quantidade, data_venda, ROUND(valor, 2) as valor
-        FROM delta_scan('{base_path}/vendas')
-        ORDER BY venda_id
-        LIMIT 5
+    # 2. Tabela de Produtos
+    products_df = con.execute("""
+        SELECT
+            i as product_id,
+            'Product ' || i as product_name,
+            ['Electronics', 'Clothing', 'Food', 'Books'][i % 4 + 1] as category,
+            10.0 + RANDOM() * 1000 as price
+        FROM range(1, 101) tbl(i)
     """).df()
-    print(df_vendas.to_string(index=False))
+
+    write_deltalake("./delta_tables/products", products_df, mode="overwrite")
+
+    # 3. Tabela de Vendas (particionada por data)
+    sales_df = con.execute("""
+        SELECT
+            i as order_id,
+            1 + (i % 1000) as customer_id,
+            1 + (i % 100) as product_id,
+            1 + (RANDOM() * 5)::INTEGER as quantity,
+            CURRENT_DATE - (i % 365) * INTERVAL '1 day' as order_date,
+            RANDOM() * 1000 as amount
+        FROM range(1, 50001) tbl(i)
+    """).df()
+
+    write_deltalake(
+        "./delta_tables/sales",
+        sales_df,
+        partition_by=["order_date"],
+        mode="overwrite"
+    )
+
+    print("✓ Sample Delta tables created:")
+    print("  - ./delta_tables/customers")
+    print("  - ./delta_tables/products")
+    print("  - ./delta_tables/sales (partitioned)")
+
+    # Verificar tabelas
+    for table in ['customers', 'products', 'sales']:
+        count = con.execute(f"""
+            SELECT COUNT(*) as total
+            FROM delta_scan('./delta_tables/{table}')
+        """).fetchone()[0]
+        print(f"  - {table}: {count:,} rows")
 
     con.close()
-
-def queries_avancadas_delta(base_path):
-    """Demonstrar queries avançadas com Delta tables"""
-    print("\n3. QUERIES AVANÇADAS COM DELTA TABLES")
-    print("-" * 60)
-
-    if base_path is None:
-        return
-
-    con = duckdb.connect()
-    con.execute("LOAD delta")
-
-    # JOIN entre tabelas Delta
-    print("\n   a) JOIN: Vendas com informações de Cliente e Produto:")
-    df_join = con.execute(f"""
-        SELECT
-            v.venda_id,
-            c.nome as cliente,
-            c.pais,
-            p.nome_produto,
-            p.categoria,
-            v.quantidade,
-            ROUND(v.valor, 2) as valor
-        FROM delta_scan('{base_path}/vendas') v
-        JOIN delta_scan('{base_path}/clientes') c ON v.cliente_id = c.cliente_id
-        JOIN delta_scan('{base_path}/produtos') p ON v.produto_id = p.produto_id
-        ORDER BY v.venda_id
-        LIMIT 10
-    """).df()
-    print(df_join.to_string(index=False))
-
-    # Agregação
-    print("\n   b) Análise de Vendas por País:")
-    df_agg = con.execute(f"""
-        SELECT
-            c.pais,
-            COUNT(*) as total_vendas,
-            ROUND(SUM(v.valor), 2) as valor_total,
-            ROUND(AVG(v.valor), 2) as valor_medio
-        FROM delta_scan('{base_path}/vendas') v
-        JOIN delta_scan('{base_path}/clientes') c ON v.cliente_id = c.cliente_id
-        GROUP BY c.pais
-        ORDER BY valor_total DESC
-    """).df()
-    print(df_agg.to_string(index=False))
-
-    # Window Functions
-    print("\n   c) Top 3 Produtos por Categoria:")
-    df_window = con.execute(f"""
-        WITH vendas_produto AS (
-            SELECT
-                p.categoria,
-                p.nome_produto,
-                SUM(v.valor) as valor_total,
-                COUNT(*) as qtd_vendas
-            FROM delta_scan('{base_path}/vendas') v
-            JOIN delta_scan('{base_path}/produtos') p ON v.produto_id = p.produto_id
-            GROUP BY p.categoria, p.nome_produto
-        )
-        SELECT
-            categoria,
-            nome_produto,
-            ROUND(valor_total, 2) as valor_total,
-            qtd_vendas,
-            RANK() OVER (PARTITION BY categoria ORDER BY valor_total DESC) as ranking
-        FROM vendas_produto
-        QUALIFY ranking <= 3
-        ORDER BY categoria, ranking
-    """).df()
-    print(df_window.to_string(index=False))
-
-    con.close()
-
-def criar_views_delta(base_path):
-    """Criar views sobre tabelas Delta"""
-    print("\n4. CRIANDO VIEWS SOBRE TABELAS DELTA")
-    print("-" * 60)
-
-    if base_path is None:
-        return
-
-    con = duckdb.connect()
-    con.execute("LOAD delta")
-
-    # View de vendas com informações completas
-    con.execute(f"""
-        CREATE OR REPLACE VIEW vw_vendas_completas AS
-        SELECT
-            v.venda_id,
-            v.data_venda,
-            c.nome as cliente,
-            c.pais,
-            p.nome_produto,
-            p.categoria,
-            v.quantidade,
-            v.valor,
-            v.quantidade * v.valor as valor_total
-        FROM delta_scan('{base_path}/vendas') v
-        JOIN delta_scan('{base_path}/clientes') c ON v.cliente_id = c.cliente_id
-        JOIN delta_scan('{base_path}/produtos') p ON v.produto_id = p.produto_id
-    """)
-    print("   ✓ View 'vw_vendas_completas' criada")
-
-    # Usar a view
-    print("\n   Consultando a view (primeiros 5 registros):")
-    df_view = con.execute("""
-        SELECT
-            venda_id,
-            data_venda,
-            cliente,
-            pais,
-            nome_produto,
-            ROUND(valor_total, 2) as valor_total
-        FROM vw_vendas_completas
-        ORDER BY valor_total DESC
-        LIMIT 5
-    """).df()
-    print(df_view.to_string(index=False))
-
-    con.close()
-
-def explorar_estrutura_delta(base_path):
-    """Explorar estrutura física das tabelas Delta"""
-    print("\n5. EXPLORANDO ESTRUTURA DAS TABELAS DELTA")
-    print("-" * 60)
-
-    if base_path is None:
-        return
-
-    import json
-
-    # Explorar transaction log
-    vendas_path = base_path / "vendas" / "_delta_log"
-
-    if vendas_path.exists():
-        print(f"\n   Transaction log em: {vendas_path}")
-        log_files = list(vendas_path.glob("*.json"))
-        print(f"   Arquivos no log: {len(log_files)}")
-
-        if log_files:
-            # Ler primeiro arquivo do log
-            with open(log_files[0], 'r') as f:
-                first_line = f.readline()
-                entry = json.loads(first_line)
-
-                if 'metaData' in entry:
-                    print(f"\n   Metadata da tabela:")
-                    print(f"   - Schema: {entry['metaData'].get('schemaString', 'N/A')[:100]}...")
-                elif 'add' in entry:
-                    print(f"\n   Primeiro arquivo de dados:")
-                    print(f"   - Path: {entry['add']['path']}")
-                    print(f"   - Size: {entry['add']['size']} bytes")
-
-def main():
-    print("=" * 80)
-    print("CAPÍTULO 3: INTRODUÇÃO À EXTENSÃO DELTA")
-    print("=" * 80)
-
-    base_path = criar_tabelas_delta_exemplo()
-
-    if base_path:
-        ler_tabelas_delta(base_path)
-        queries_avancadas_delta(base_path)
-        criar_views_delta(base_path)
-        explorar_estrutura_delta(base_path)
-
-        print("\n" + "=" * 80)
-        print("✓ Demonstração do Capítulo 3 concluída com sucesso!")
-        print("=" * 80)
-        print(f"\nTabelas Delta criadas em: {base_path}")
-    else:
-        print("\n" + "=" * 80)
-        print("✗ Demonstração não concluída - instale 'deltalake'")
-        print("=" * 80)
 
 if __name__ == "__main__":
-    main()
+    create_sample_delta_tables()
+
+# Exemplo/Bloco 4
+import json
+from pathlib import Path
+
+def explore_delta_log(delta_table_path):
+    """
+    Explorar transaction log de tabela Delta
+    """
+    log_path = Path(delta_table_path) / "_delta_log"
+
+    print(f"Transaction log files in {log_path}:")
+    for log_file in sorted(log_path.glob("*.json")):
+        print(f"\n{log_file.name}:")
+        with open(log_file) as f:
+            for line in f:
+                entry = json.loads(line)
+                if 'add' in entry:
+                    print(f"  ADD: {entry['add']['path']}")
+                elif 'remove' in entry:
+                    print(f"  REMOVE: {entry['remove']['path']}")
+                elif 'metaData' in entry:
+                    print(f"  METADATA: {entry['metaData'].get('name', 'N/A')}")
+
+# Uso
+explore_delta_log("./my_delta_table")
+

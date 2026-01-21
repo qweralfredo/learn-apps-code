@@ -1,33 +1,820 @@
 # -*- coding: utf-8 -*-
 """
-Capítulo 05: Persistent Secrets
+Secrets-05-persistent-secrets
 """
 
-# Capítulo 5: Persistent Secrets
+# Secrets-05-persistent-secrets
 import duckdb
 import os
 
-# Criar database file-based
-db_path = 'test_persistent.duckdb'
-con = duckdb.connect(db_path)
+# Exemplo/Bloco 1
+import duckdb
+
+con = duckdb.connect('mydb.duckdb')
 con.execute("INSTALL httpfs; LOAD httpfs;")
 
-# Criar PERSISTENT secret
+# TEMPORARY secret (padrão)
 con.execute("""
-    CREATE PERSISTENT SECRET my_persistent_s3 (
+    CREATE SECRET temp_s3 (
         TYPE s3,
-        KEY_ID 'persistent_key',
-        SECRET 'persistent_secret',
+        KEY_ID 'temp_key',
+        SECRET 'temp_secret'
+    )
+""")
+
+# PERSISTENT secret
+con.execute("""
+    CREATE PERSISTENT SECRET persist_s3 (
+        TYPE s3,
+        KEY_ID 'persist_key',
+        SECRET 'persist_secret'
+    )
+""")
+
+# Comparar
+secrets = con.execute("""
+    SELECT name, persistent, storage
+    FROM duckdb_secrets()
+""").df()
+
+print("Secrets criados:")
+print(secrets)
+
+print("""
+┌──────────────────┬─────────────────┬─────────────────┐
+│ Característica   │ Temporary       │ Persistent      │
+├──────────────────┼─────────────────┼─────────────────┤
+│ Armazenamento    │ Memória         │ Disco           │
+│ Sobrevive restart│ Não             │ Sim             │
+│ Performance      │ Mais rápido     │ Ligeiramente +  │
+│ Segurança        │ Mais seguro     │ Requer cuidados │
+│ Uso típico       │ Dev/Testes      │ Produção        │
+└──────────────────┴─────────────────┴─────────────────┘
+""")
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET persist_s3")
+con.close()
+
+# Exemplo/Bloco 2
+import duckdb
+import os
+
+# Criar database
+db_path = 'test_secrets.duckdb'
+
+print("=== Sessão 1: Criar secrets ===")
+con1 = duckdb.connect(db_path)
+con1.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Temporary
+con1.execute("""
+    CREATE SECRET temp_secret (
+        TYPE s3,
+        KEY_ID 'temp',
+        SECRET 'temp'
+    )
+""")
+
+# Persistent
+con1.execute("""
+    CREATE PERSISTENT SECRET persist_secret (
+        TYPE s3,
+        KEY_ID 'persist',
+        SECRET 'persist'
+    )
+""")
+
+secrets1 = con1.execute("SELECT name, persistent FROM duckdb_secrets()").df()
+print("\nSecrets na sessão 1:")
+print(secrets1)
+
+# Fechar conexão
+con1.close()
+
+print("\n=== Sessão 2: Reabrir database ===")
+con2 = duckdb.connect(db_path)
+con2.execute("INSTALL httpfs; LOAD httpfs;")
+
+secrets2 = con2.execute("SELECT name, persistent FROM duckdb_secrets()").df()
+print("\nSecrets na sessão 2:")
+print(secrets2)
+
+if len(secrets2) > 0:
+    print("\n✓ Persistent secret sobreviveu ao restart!")
+else:
+    print("\n✓ Apenas temporary secret foi perdido (comportamento esperado)")
+
+# Limpeza
+con2.execute("DROP PERSISTENT SECRET IF EXISTS persist_secret")
+con2.close()
+
+if os.path.exists(db_path):
+    os.remove(db_path)
+
+# Exemplo/Bloco 3
+import duckdb
+import os
+
+con = duckdb.connect('mydb.duckdb')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Verificar configuração de secret storage
+config = con.execute("""
+    SELECT * FROM duckdb_settings()
+    WHERE name = 'secret_directory'
+""").df()
+
+print("Configuração de secret_directory:")
+print(config)
+
+# Criar persistent secret
+con.execute("""
+    CREATE PERSISTENT SECRET my_secret (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret'
+    )
+""")
+
+print("""
+Local padrão de armazenamento:
+┌──────────────────────────────────────────────────────┐
+│ In-Memory Database (:memory:)                        │
+│   → Secrets persistentes NÃO são suportados         │
+│                                                      │
+│ File-Based Database (mydb.duckdb)                   │
+│   → <database_dir>/.duckdb/secrets/                 │
+│   → Exemplo: ./mydb.duckdb/.duckdb/secrets/         │
+│                                                      │
+│ Customizado via SET secret_directory                │
+│   → Qualquer diretório especificado                 │
+└──────────────────────────────────────────────────────┘
+""")
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET my_secret")
+con.close()
+
+# Exemplo/Bloco 4
+import duckdb
+import os
+
+# Criar diretório para secrets
+secret_dir = os.path.join(os.getcwd(), 'my_secrets')
+os.makedirs(secret_dir, exist_ok=True)
+
+con = duckdb.connect('mydb.duckdb')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Configurar secret directory antes de criar secrets
+con.execute(f"""
+    SET secret_directory = '{secret_dir}'
+""")
+
+print(f"Secret directory configurado: {secret_dir}")
+
+# Criar persistent secret
+con.execute("""
+    CREATE PERSISTENT SECRET custom_location (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret'
+    )
+""")
+
+print(f"\nSecret salvo em: {secret_dir}")
+
+# Verificar arquivos criados
+if os.path.exists(secret_dir):
+    files = os.listdir(secret_dir)
+    print(f"\nArquivos no secret directory:")
+    for f in files:
+        print(f"  - {f}")
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET custom_location")
+con.close()
+
+# Remover diretório de teste
+import shutil
+if os.path.exists(secret_dir):
+    shutil.rmtree(secret_dir)
+
+# Exemplo/Bloco 5
+import duckdb
+import os
+
+def setup_environment_secrets(env='development'):
+    """
+    Configurar secrets baseado no ambiente
+    """
+    # Definir diretório de secrets por ambiente
+    base_dir = os.path.join(os.getcwd(), 'secrets')
+    secret_dir = os.path.join(base_dir, env)
+    os.makedirs(secret_dir, exist_ok=True)
+
+    # Conectar ao database
+    db_path = f'{env}.duckdb'
+    con = duckdb.connect(db_path)
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+
+    # Configurar secret directory
+    con.execute(f"SET secret_directory = '{secret_dir}'")
+
+    print(f"Ambiente: {env}")
+    print(f"Database: {db_path}")
+    print(f"Secrets: {secret_dir}")
+
+    return con
+
+# Development
+print("=== Development Environment ===")
+dev_con = setup_environment_secrets('development')
+
+dev_con.execute("""
+    CREATE PERSISTENT SECRET dev_s3 (
+        TYPE s3,
+        KEY_ID 'dev_key',
+        SECRET 'dev_secret',
+        REGION 'us-west-2'
+    )
+""")
+
+dev_secrets = dev_con.execute("SELECT name FROM duckdb_secrets()").df()
+print(f"\nDev secrets: {list(dev_secrets['name'])}")
+dev_con.close()
+
+# Production
+print("\n=== Production Environment ===")
+prod_con = setup_environment_secrets('production')
+
+prod_con.execute("""
+    CREATE PERSISTENT SECRET prod_s3 (
+        TYPE s3,
+        KEY_ID 'prod_key',
+        SECRET 'prod_secret',
         REGION 'us-east-1'
     )
 """)
 
-# Verificar persistência
-secrets = con.execute("SELECT name, persistent, storage FROM duckdb_secrets()").df()
-print(secrets)
+prod_secrets = prod_con.execute("SELECT name FROM duckdb_secrets()").df()
+print(f"\nProd secrets: {list(prod_secrets['name'])}")
+prod_con.close()
 
+print("""
+Estrutura criada:
+secrets/
+├── development/
+│   └── dev_s3.secret
+└── production/
+    └── prod_s3.secret
+""")
+
+# Limpeza
+for env in ['development', 'production']:
+    con = duckdb.connect(f'{env}.duckdb')
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+    secret_name = f"{env[:4]}_s3"
+    con.execute(f"DROP PERSISTENT SECRET IF EXISTS {secret_name}")
+    con.close()
+    if os.path.exists(f'{env}.duckdb'):
+        os.remove(f'{env}.duckdb')
+
+# Exemplo/Bloco 6
+import duckdb
+import os
+import json
+
+con = duckdb.connect('mydb.duckdb')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Criar persistent secret
+con.execute("""
+    CREATE PERSISTENT SECRET example_secret (
+        TYPE s3,
+        KEY_ID 'AKIAIOSFODNN7EXAMPLE',
+        SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        REGION 'us-east-1',
+        SCOPE 's3://my-bucket/'
+    )
+""")
+
+print("""
+Estrutura de Armazenamento de Persistent Secrets:
+
+mydb.duckdb/
+└── .duckdb/
+    └── secrets/
+        └── example_secret.secret
+
+Formato do arquivo:
+┌──────────────────────────────────────────────────────┐
+│ - Formato binário criptografado                      │
+│ - Não é legível diretamente                          │
+│ - Criptografia específica do DuckDB                  │
+│ - Não editar manualmente                             │
+└──────────────────────────────────────────────────────┘
+
+Metadata armazenada:
+- Nome do secret
+- Tipo (s3, azure, etc.)
+- Provider
+- Scope
+- Parâmetros de configuração
+- Credenciais (criptografadas)
+""")
+
+# Informações do secret
+info = con.execute("""
+    SELECT name, type, provider, scope, persistent, storage
+    FROM duckdb_secrets()
+    WHERE name = 'example_secret'
+""").df()
+
+print("\nInformações do secret:")
+print(info.to_string(index=False))
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET example_secret")
 con.close()
 
-# Cleanup
+# Exemplo/Bloco 7
+import duckdb
+import os
+import shutil
+
+def backup_secrets(db_path, backup_dir):
+    """
+    Backup de persistent secrets
+    """
+    # Diretório de secrets
+    secrets_dir = os.path.join(db_path, '.duckdb', 'secrets')
+
+    if not os.path.exists(secrets_dir):
+        print("Nenhum secret persistente encontrado")
+        return
+
+    # Criar diretório de backup
+    os.makedirs(backup_dir, exist_ok=True)
+
+    # Copiar secrets
+    backup_secrets_dir = os.path.join(backup_dir, 'secrets')
+    if os.path.exists(secrets_dir):
+        shutil.copytree(secrets_dir, backup_secrets_dir, dirs_exist_ok=True)
+        print(f"✓ Secrets backed up to: {backup_secrets_dir}")
+
+        # Listar arquivos
+        files = os.listdir(backup_secrets_dir)
+        print(f"\nArquivos backed up:")
+        for f in files:
+            print(f"  - {f}")
+
+def restore_secrets(backup_dir, db_path):
+    """
+    Restore de persistent secrets
+    """
+    backup_secrets_dir = os.path.join(backup_dir, 'secrets')
+
+    if not os.path.exists(backup_secrets_dir):
+        print("Backup de secrets não encontrado")
+        return
+
+    # Diretório de destino
+    secrets_dir = os.path.join(db_path, '.duckdb', 'secrets')
+    os.makedirs(os.path.dirname(secrets_dir), exist_ok=True)
+
+    # Copiar secrets
+    shutil.copytree(backup_secrets_dir, secrets_dir, dirs_exist_ok=True)
+    print(f"✓ Secrets restored to: {secrets_dir}")
+
+# Exemplo de uso
+db_path = 'mydb.duckdb'
+backup_dir = 'backup'
+
+# Criar database e secrets
+con = duckdb.connect(db_path)
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+con.execute("""
+    CREATE PERSISTENT SECRET backup_test (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret'
+    )
+""")
+
+print("Secret criado")
+con.close()
+
+# Backup
+print("\n=== Backup ===")
+backup_secrets(db_path, backup_dir)
+
+# Deletar secret
+con = duckdb.connect(db_path)
+con.execute("INSTALL httpfs; LOAD httpfs;")
+con.execute("DROP PERSISTENT SECRET backup_test")
+print("\n=== Secret deletado ===")
+con.close()
+
+# Restore
+print("\n=== Restore ===")
+restore_secrets(backup_dir, db_path)
+
+# Verificar
+con = duckdb.connect(db_path)
+con.execute("INSTALL httpfs; LOAD httpfs;")
+secrets = con.execute("SELECT name FROM duckdb_secrets()").df()
+print(f"\nSecrets após restore: {list(secrets['name']) if len(secrets) > 0 else 'None'}")
+con.close()
+
+# Limpeza
+if os.path.exists(backup_dir):
+    shutil.rmtree(backup_dir)
 if os.path.exists(db_path):
     os.remove(db_path)
+
+# Exemplo/Bloco 8
+import duckdb
+import os
+import stat
+
+def set_secure_permissions(secret_dir):
+    """
+    Configurar permissões seguras para diretório de secrets
+    """
+    if not os.path.exists(secret_dir):
+        print(f"Diretório não existe: {secret_dir}")
+        return
+
+    # Unix/Linux/Mac: 700 (rwx------)
+    # Apenas o owner pode ler, escrever e executar
+    try:
+        os.chmod(secret_dir, stat.S_IRWXU)
+        print(f"✓ Permissões seguras aplicadas: {secret_dir}")
+        print("  Owner: read, write, execute")
+        print("  Group: nenhuma permissão")
+        print("  Others: nenhuma permissão")
+
+        # Aplicar em todos os arquivos
+        for root, dirs, files in os.walk(secret_dir):
+            for d in dirs:
+                os.chmod(os.path.join(root, d), stat.S_IRWXU)
+            for f in files:
+                # Arquivos: 600 (rw-------)
+                os.chmod(os.path.join(root, f), stat.S_IRUSR | stat.S_IWUSR)
+
+        print("✓ Permissões aplicadas em todos os arquivos")
+
+    except Exception as e:
+        print(f"Erro ao configurar permissões: {e}")
+        print("Nota: Permissões são específicas Unix/Linux/Mac")
+
+# Exemplo
+db_path = 'secure.duckdb'
+con = duckdb.connect(db_path)
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+con.execute("""
+    CREATE PERSISTENT SECRET secure_secret (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret'
+    )
+""")
+
+print("Secret criado")
+con.close()
+
+# Aplicar permissões seguras
+secrets_dir = os.path.join(db_path, '.duckdb', 'secrets')
+if os.path.exists(secrets_dir):
+    set_secure_permissions(secrets_dir)
+
+print("""
+Best Practices para File Permissions:
+┌──────────────────────────────────────────────────────┐
+│ Unix/Linux/Mac:                                      │
+│   - Diretório secrets/: 700 (rwx------)             │
+│   - Arquivos .secret: 600 (rw-------)               │
+│                                                      │
+│ Windows:                                             │
+│   - Use NTFS permissions                            │
+│   - Acesso apenas para usuário específico           │
+│   - Remover herança de permissões                   │
+│                                                      │
+│ Todos os sistemas:                                   │
+│   - Não compartilhar secrets entre usuários         │
+│   - Não commitar secrets no git                     │
+│   - Usar .gitignore para excluir secrets/           │
+└──────────────────────────────────────────────────────┘
+""")
+
+# Limpeza
+con = duckdb.connect(db_path)
+con.execute("INSTALL httpfs; LOAD httpfs;")
+con.execute("DROP PERSISTENT SECRET secure_secret")
+con.close()
+
+if os.path.exists(db_path):
+    os.remove(db_path)
+
+# Exemplo/Bloco 9
+import duckdb
+
+print("""
+Encryption at Rest para Persistent Secrets:
+
+Proteção Nativa do DuckDB:
+┌──────────────────────────────────────────────────────┐
+│ ✓ Secrets são armazenados em formato criptografado  │
+│ ✓ Criptografia gerenciada pelo DuckDB               │
+│ ✓ Não é possível ler secrets diretamente do disco   │
+│ ✓ Descriptografia automática ao carregar database   │
+└──────────────────────────────────────────────────────┘
+
+Camadas Adicionais de Segurança:
+
+1. Full Disk Encryption
+   - BitLocker (Windows)
+   - FileVault (macOS)
+   - LUKS (Linux)
+   ✓ Protege todos os dados em disco
+
+2. Database Encryption (futuro)
+   - DuckDB planeja suporte a database encryption
+   - Protegeria todo o database file
+   - Requereria password/key para abrir
+
+3. File System Encryption
+   - eCryptfs (Linux)
+   - EncFS (Unix-like)
+   ✓ Protege diretórios específicos
+
+4. Cloud Storage Encryption
+   - S3 SSE (Server-Side Encryption)
+   - Azure Storage Service Encryption
+   - GCS default encryption
+   ✓ Protege backups em cloud
+
+Recomendações:
+──────────────
+Desenvolvimento:
+  - Persistent secrets OK se file permissions corretas
+  - Não commitar no git
+
+Produção:
+  - Full disk encryption OBRIGATÓRIO
+  - File permissions restritivas
+  - Rotação regular de credentials
+  - Audit logs
+  - Secrets manager quando possível (AWS Secrets Manager, etc.)
+""")
+
+# Exemplo/Bloco 10
+print("""
+Persistent Secrets em Containers Docker:
+
+Problema:
+---------
+Containers são efêmeros - persistent secrets podem ser perdidos
+
+Soluções:
+
+1. Volume Mounting (Development)
+   ────────────────────────────────
+   docker run -v /host/secrets:/app/secrets myapp
+
+   Dockerfile:
+   FROM python:3.11
+   WORKDIR /app
+   # Secret directory como volume
+   VOLUME ["/app/secrets"]
+
+   Pros: Simples, secrets sobrevivem container restart
+   Cons: Secrets no host, requer gestão manual
+
+2. Docker Secrets (Docker Swarm)
+   ───────────────────────────────
+   echo "my_secret" | docker secret create db_password -
+
+   docker-compose.yml:
+   services:
+     app:
+       secrets:
+         - db_password
+   secrets:
+     db_password:
+       external: true
+
+   Pros: Nativo Docker, criptografado
+   Cons: Apenas Docker Swarm
+
+3. Kubernetes Secrets
+   ───────────────────
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: duckdb-secrets
+   type: Opaque
+   data:
+     s3_key: <base64-encoded>
+
+   Pros: Nativo K8s, gestão centralizada
+   Cons: Base64 não é encryption (use Sealed Secrets ou Vault)
+
+4. Secrets Manager Integration
+   ───────────────────────────────
+   - AWS Secrets Manager
+   - Azure Key Vault
+   - HashiCorp Vault
+   - Google Secret Manager
+
+   Python Example:
+   import boto3
+   import duckdb
+
+   # Obter secret do AWS Secrets Manager
+   client = boto3.client('secretsmanager')
+   response = client.get_secret_value(SecretId='duckdb/s3')
+   secret = json.loads(response['SecretString'])
+
+   # Criar secret no DuckDB
+   con = duckdb.connect()
+   con.execute(f\"\"\"
+       CREATE SECRET s3_secret (
+           TYPE s3,
+           KEY_ID '{secret['key_id']}',
+           SECRET '{secret['secret']}'
+       )
+   \"\"\")
+
+   Pros: Rotação automática, audit, encryption, centralizado
+   Cons: Requer infraestrutura adicional
+
+Recomendação por Ambiente:
+──────────────────────────
+Development:
+  → Volume mounting ou temporary secrets
+
+Staging:
+  → Volume mounting + encryption at rest
+
+Production:
+  → Secrets Manager (AWS/Azure/GCP) + temporary secrets
+  → Credenciais obtidas em runtime
+  → Rotação automática
+""")
+
+# Exemplo/Bloco 11
+import duckdb
+
+con = duckdb.connect('mydb.duckdb')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Criar temporary secret
+con.execute("""
+    CREATE SECRET temp_secret (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret',
+        REGION 'us-east-1'
+    )
+""")
+
+print("Temporary secret criado")
+
+# Obter informações do temporary secret
+info = con.execute("""
+    SELECT type, provider, scope
+    FROM duckdb_secrets()
+    WHERE name = 'temp_secret'
+""").fetchone()
+
+# Criar persistent secret com mesmas configurações
+con.execute("""
+    CREATE PERSISTENT SECRET persist_secret (
+        TYPE s3,
+        KEY_ID 'key',
+        SECRET 'secret',
+        REGION 'us-east-1'
+    )
+""")
+
+print("Persistent secret criado com mesmas configurações")
+
+# Remover temporary secret
+con.execute("DROP SECRET temp_secret")
+
+# Verificar
+secrets = con.execute("""
+    SELECT name, persistent
+    FROM duckdb_secrets()
+""").df()
+
+print("\nSecrets finais:")
+print(secrets)
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET persist_secret")
+con.close()
+
+# Exemplo/Bloco 12
+import duckdb
+
+con = duckdb.connect('mydb.duckdb')
+con.execute("INSTALL httpfs; LOAD httpfs;")
+
+# Criar persistent secret
+con.execute("""
+    CREATE PERSISTENT SECRET my_secret (
+        TYPE s3,
+        KEY_ID 'old_key',
+        SECRET 'old_secret',
+        REGION 'us-east-1'
+    )
+""")
+
+print("Secret original criado")
+
+# Para "atualizar", precisa deletar e recriar
+# (DuckDB não tem ALTER SECRET)
+con.execute("DROP PERSISTENT SECRET my_secret")
+
+con.execute("""
+    CREATE PERSISTENT SECRET my_secret (
+        TYPE s3,
+        KEY_ID 'new_key',
+        SECRET 'new_secret',
+        REGION 'us-west-2'
+    )
+""")
+
+print("Secret atualizado (deletado e recriado)")
+
+print("""
+Update de Secrets:
+┌──────────────────────────────────────────────────────┐
+│ DuckDB não tem ALTER SECRET                         │
+│                                                      │
+│ Processo de update:                                  │
+│   1. DROP [PERSISTENT] SECRET old_name              │
+│   2. CREATE [PERSISTENT] SECRET new_name (...)      │
+│                                                      │
+│ IMPORTANTE:                                          │
+│   - Período sem secret entre DROP e CREATE          │
+│   - Queries podem falhar neste período              │
+│   - Considere criar com nome diferente primeiro     │
+│   - Depois delete o antigo                          │
+└──────────────────────────────────────────────────────┘
+""")
+
+# Limpeza
+con.execute("DROP PERSISTENT SECRET my_secret")
+con.close()
+
+# Exemplo/Bloco 13
+# 1. Crie um database file-based
+# 2. Crie 2 persistent secrets (S3 e HTTP)
+# 3. Liste os secrets e verifique o campo 'persistent'
+# 4. Feche a conexão
+# 5. Reabra o database
+# 6. Verifique que os secrets ainda existem
+# 7. Delete ambos os secrets
+# 8. Feche e reabra novamente para confirmar remoção
+
+# Sua solução aqui
+
+# Exemplo/Bloco 14
+# 1. Configure um secret_directory customizado
+# 2. Crie um persistent secret
+# 3. Verifique que o arquivo foi criado no diretório correto
+# 4. Liste os arquivos no secret_directory
+# 5. Faça backup do diretório de secrets
+# 6. Delete o secret
+# 7. Restaure do backup
+# 8. Verifique que o secret foi restaurado
+
+# Sua solução aqui
+
+# Exemplo/Bloco 15
+# 1. Crie 3 databases: dev.duckdb, staging.duckdb, prod.duckdb
+# 2. Configure secret_directory diferente para cada um
+# 3. Crie persistent secrets com mesmos nomes mas credenciais diferentes
+# 4. Verifique que cada database tem seus próprios secrets
+# 5. Use which_secret() em cada database
+# 6. Faça limpeza de todos os resources
+
+# Sua solução aqui
+
+# Exemplo/Bloco 16
+# 1. Crie um persistent secret
+# 2. Configure permissões restritivas no secret_directory
+# 3. Documente as permissões aplicadas
+# 4. Teste que o secret ainda funciona após mudança de permissões
+# 5. Crie um plano de rotação de credenciais
+# 6. Implemente a rotação (drop + create com novas credenciais)
+
+# Sua solução aqui
+

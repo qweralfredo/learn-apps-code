@@ -1,0 +1,373 @@
+# -*- coding: utf-8 -*-
+"""
+Iceberg-09-integracao-cloud-storage
+"""
+
+# Iceberg-09-integracao-cloud-storage
+import duckdb
+import os
+
+# Exemplo/Bloco 1
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# Opção 1: Credentials explícitas
+con.execute("""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        PROVIDER config,
+        KEY_ID 'AKIAIOSFODNN7EXAMPLE',
+        SECRET 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        REGION 'us-east-1'
+    )
+""")
+
+# Opção 2: Credential chain (AWS CLI/env vars)
+con.execute("""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        PROVIDER credential_chain
+    )
+""")
+
+# Exemplo/Bloco 2
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# Configurar S3
+con.execute("""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        PROVIDER credential_chain
+    )
+""")
+
+# Ler tabela Iceberg
+result = con.execute("""
+    SELECT count(*)
+    FROM iceberg_scan('s3://my-bucket/warehouse/sales')
+""").fetchone()
+
+print(f"Total de registros: {result[0]:,}")
+
+# Exemplo/Bloco 3
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# Secret para S3
+con.execute("""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        PROVIDER credential_chain
+    )
+""")
+
+# Secret para catálogo Iceberg
+con.execute("""
+    CREATE SECRET iceberg_secret (
+        TYPE iceberg,
+        CLIENT_ID 'catalog_client',
+        CLIENT_SECRET 'catalog_secret',
+        OAUTH2_SERVER_URI 'https://catalog.example.com/oauth/tokens'
+    )
+""")
+
+# Anexar catálogo
+con.execute("""
+    ATTACH 's3://my-bucket/warehouse' AS iceberg_cat (
+        TYPE iceberg,
+        SECRET iceberg_secret,
+        ENDPOINT 'https://catalog.example.com'
+    )
+""")
+
+# Consultar
+result = con.execute("""
+    SELECT * FROM iceberg_cat.default.sales LIMIT 10
+""").df()
+
+print(result)
+
+# Exemplo/Bloco 4
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD azure")
+
+# Configurar credenciais Azure
+con.execute("""
+    CREATE SECRET azure_secret (
+        TYPE azure,
+        PROVIDER config,
+        ACCOUNT_NAME 'mystorageaccount',
+        ACCOUNT_KEY 'my_account_key=='
+    )
+""")
+
+# Exemplo/Bloco 5
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD azure")
+
+# Configurar Azure
+con.execute("""
+    CREATE SECRET azure_secret (
+        TYPE azure,
+        PROVIDER config,
+        ACCOUNT_NAME 'mystorageaccount',
+        ACCOUNT_KEY 'key=='
+    )
+""")
+
+# Ler tabela Iceberg
+result = con.execute("""
+    SELECT *
+    FROM iceberg_scan('az://container/path/to/iceberg/table')
+    LIMIT 100
+""").df()
+
+print(result.head())
+
+# Exemplo/Bloco 6
+con.execute("""
+    CREATE SECRET azure_secret (
+        TYPE azure,
+        PROVIDER sas_token,
+        ACCOUNT_NAME 'mystorageaccount',
+        SAS_TOKEN 'sp=r&st=...'
+    )
+""")
+
+# Exemplo/Bloco 7
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# Aumentar threads para I/O paralelo
+con.execute("SET threads = 16")
+
+# Ler grandes datasets
+result = con.execute("""
+    SELECT
+        date_trunc('month', order_date) as month,
+        count(*) as orders
+    FROM iceberg_scan('s3://bucket/large_table')
+    WHERE order_date >= '2024-01-01'
+    GROUP BY month
+""").df()
+
+# Exemplo/Bloco 8
+# ✅ BOM: Especificar colunas
+SELECT customer_id, total_amount
+FROM iceberg_scan('s3://bucket/sales');
+
+# ❌ RUIM: SELECT *
+SELECT *
+FROM iceberg_scan('s3://bucket/sales');
+
+# Exemplo/Bloco 9
+# Filtros são aplicados durante leitura
+SELECT *
+FROM iceberg_scan('s3://bucket/sales')
+WHERE order_date >= '2024-01-01'  # Pushdown para Parquet
+  AND region = 'US';               # Pushdown para Parquet
+
+# Exemplo/Bloco 10
+import duckdb
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# Analisar query
+explain = con.execute("""
+    EXPLAIN ANALYZE
+    SELECT
+        region,
+        sum(total_amount) as revenue
+    FROM iceberg_scan('s3://bucket/sales')
+    WHERE order_date >= '2024-01-01'
+    GROUP BY region
+""").fetchall()
+
+for row in explain:
+    print(row[0])
+
+# Exemplo/Bloco 11
+import duckdb
+import time
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+# Medir tempo de leitura
+start = time.time()
+result = con.execute("""
+    SELECT count(*)
+    FROM iceberg_scan('s3://bucket/large_table')
+    WHERE event_date = '2024-01-15'
+""").fetchone()
+elapsed = time.time() - start
+
+print(f"Tempo: {elapsed:.2f}s")
+print(f"Registros: {result[0]:,}")
+print(f"Taxa: {result[0]/elapsed:,.0f} registros/s")
+
+# Exemplo/Bloco 12
+import duckdb
+import os
+
+# Ler credenciais de ambiente
+aws_key = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+con = duckdb.connect()
+con.execute("LOAD iceberg")
+con.execute("LOAD httpfs")
+
+con.execute(f"""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        PROVIDER config,
+        KEY_ID '{aws_key}',
+        SECRET '{aws_secret}',
+        REGION 'us-east-1'
+    )
+""")
+
+# Exemplo/Bloco 13
+# Usar credential chain ao invés de credenciais hardcoded
+con.execute("""
+    CREATE SECRET s3_secret (
+        TYPE s3,
+        PROVIDER credential_chain
+    )
+""")
+
+# Funciona com:
+# - AWS CLI (~/.aws/credentials)
+# - Variáveis de ambiente
+# - IAM roles (EC2/ECS)
+
+# Exemplo/Bloco 14
+import duckdb
+import os
+from datetime import datetime
+
+class IcebergS3Pipeline:
+    def __init__(self, bucket, prefix):
+        self.bucket = bucket
+        self.prefix = prefix
+
+        self.con = duckdb.connect()
+        self.con.execute("LOAD iceberg")
+        self.con.execute("LOAD httpfs")
+
+        # Usar credential chain
+        self.con.execute("""
+            CREATE SECRET s3_secret (
+                TYPE s3,
+                PROVIDER credential_chain
+            )
+        """)
+
+        # Otimizações
+        self.con.execute("SET threads = 16")
+        self.con.execute("SET memory_limit = '8GB'")
+
+    def read_table(self, table_name, filter_date=None):
+        """Lê tabela Iceberg do S3"""
+        table_path = f"s3://{self.bucket}/{self.prefix}/{table_name}"
+
+        query = f"SELECT * FROM iceberg_scan('{table_path}')"
+        if filter_date:
+            query += f" WHERE event_date >= '{filter_date}'"
+
+        return self.con.execute(query).df()
+
+    def aggregate_data(self, table_name, date_from):
+        """Agregação mensal"""
+        table_path = f"s3://{self.bucket}/{self.prefix}/{table_name}"
+
+        return self.con.execute(f"""
+            SELECT
+                date_trunc('month', event_date) as month,
+                count(*) as total_events,
+                count(DISTINCT user_id) as unique_users
+            FROM iceberg_scan('{table_path}')
+            WHERE event_date >= '{date_from}'
+            GROUP BY month
+            ORDER BY month
+        """).df()
+
+    def export_to_parquet(self, query, output_path):
+        """Exporta resultado para Parquet"""
+        self.con.execute(f"""
+            COPY ({query})
+            TO '{output_path}'
+            (FORMAT parquet, COMPRESSION zstd)
+        """)
+
+# Usar
+pipeline = IcebergS3Pipeline(
+    bucket='analytics-bucket',
+    prefix='warehouse'
+)
+
+# Análise mensal
+monthly = pipeline.aggregate_data('events', '2024-01-01')
+print(monthly)
+
+# Exportar
+pipeline.export_to_parquet(
+    "SELECT * FROM iceberg_scan('s3://analytics-bucket/warehouse/events') WHERE event_date >= '2024-01-01'",
+    'local_export.parquet'
+)
+
+# Exemplo/Bloco 15
+import duckdb
+
+try:
+    con = duckdb.connect()
+    con.execute("LOAD httpfs")
+
+    con.execute("""
+        CREATE SECRET test_secret (
+            TYPE s3,
+            PROVIDER credential_chain
+        )
+    """)
+
+    result = con.execute("""
+        SELECT count(*)
+        FROM iceberg_scan('s3://bucket/table')
+    """).fetchone()
+
+    print(f"✅ Sucesso: {result[0]} linhas")
+
+except Exception as e:
+    print(f"❌ Erro: {e}")
+    print("Verifique:")
+    print("1. AWS credentials configuradas")
+    print("2. Permissões S3")
+    print("3. Região correta")
+
+# Exemplo/Bloco 16
+# Aumentar timeout para redes lentas
+con.execute("SET http_timeout = 120000")  # 120 segundos
+
