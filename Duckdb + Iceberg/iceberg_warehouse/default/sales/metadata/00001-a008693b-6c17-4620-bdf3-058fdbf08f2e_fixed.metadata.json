@@ -1,0 +1,112 @@
+{
+  "location": "c:/projetos/learn-apps-code/Duckdb + Iceberg/iceberg_warehouse/default/sales",
+  "table-uuid": "25bfa596-8504-47b3-8baf-8787634c58e9",
+  "last-updated-ms": 1769116847247,
+  "last-column-id": 6,
+  "schemas": [
+    {
+      "type": "struct",
+      "fields": [
+        {
+          "id": 1,
+          "name": "order_id",
+          "type": "long",
+          "required": false
+        },
+        {
+          "id": 2,
+          "name": "customer_id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "id": 3,
+          "name": "product_id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "id": 4,
+          "name": "order_date",
+          "type": "timestamp",
+          "required": false
+        },
+        {
+          "id": 5,
+          "name": "quantity",
+          "type": "long",
+          "required": false
+        },
+        {
+          "id": 6,
+          "name": "total_amount",
+          "type": "long",
+          "required": false
+        }
+      ],
+      "schema-id": 0,
+      "identifier-field-ids": []
+    }
+  ],
+  "current-schema-id": 0,
+  "partition-specs": [
+    {
+      "spec-id": 0,
+      "fields": []
+    }
+  ],
+  "default-spec-id": 0,
+  "last-partition-id": 999,
+  "properties": {},
+  "current-snapshot-id": 1451752966504462855,
+  "snapshots": [
+    {
+      "snapshot-id": 1451752966504462855,
+      "sequence-number": 1,
+      "timestamp-ms": 1769116847247,
+      "manifest-list": "c:/projetos/learn-apps-code/Duckdb + Iceberg/iceberg_warehouse/default/sales/metadata/snap-1451752966504462855-0-07b684a0-ee92-4392-8a49-2b2b4c60aee3.avro",
+      "summary": {
+        "operation": "append",
+        "added-files-size": "3636",
+        "added-data-files": "1",
+        "added-records": "100",
+        "total-data-files": "1",
+        "total-delete-files": "0",
+        "total-records": "100",
+        "total-files-size": "3636",
+        "total-position-deletes": "0",
+        "total-equality-deletes": "0"
+      },
+      "schema-id": 0
+    }
+  ],
+  "snapshot-log": [
+    {
+      "snapshot-id": 1451752966504462855,
+      "timestamp-ms": 1769116847247
+    }
+  ],
+  "metadata-log": [
+    {
+      "metadata-file": "c:/projetos/learn-apps-code/Duckdb + Iceberg/iceberg_warehouse/default/sales/metadata/00000-626b2583-6130-4893-b4db-4ea5f13c27b7.metadata.json",
+      "timestamp-ms": 1769116846060
+    }
+  ],
+  "sort-orders": [
+    {
+      "order-id": 0,
+      "fields": []
+    }
+  ],
+  "default-sort-order-id": 0,
+  "refs": {
+    "main": {
+      "snapshot-id": 1451752966504462855,
+      "type": "branch"
+    }
+  },
+  "statistics": [],
+  "partition-statistics": [],
+  "format-version": 2,
+  "last-sequence-number": 1
+}

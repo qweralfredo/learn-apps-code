@@ -1,0 +1,60 @@
+{
+    "query_name": "\n    SELECT \n        database_size as db_size,\n        block_size,\n        total_blocks,\n        used_blocks,\n        free_blocks\n    FROM pragma_database_size()\n",
+    "blocked_thread_time": 0.0,
+    "system_peak_buffer_memory": 6270976,
+    "system_peak_temp_dir_size": 0,
+    "cpu_time": 0.0000046,
+    "extra_info": {},
+    "cumulative_cardinality": 2,
+    "cumulative_rows_scanned": 0,
+    "result_set_size": 48,
+    "latency": 0.0003812,
+    "rows_returned": 1,
+    "total_bytes_read": 0,
+    "total_bytes_written": 0,
+    "children": [
+        {
+            "cpu_time": 0.0000046,
+            "extra_info": {
+                "Projections": [
+                    "#1",
+                    "#2",
+                    "#3",
+                    "#4",
+                    "#5"
+                ],
+                "Estimated Cardinality": "1"
+            },
+            "cumulative_cardinality": 2,
+            "operator_name": "PROJECTION",
+            "operator_type": "PROJECTION",
+            "operator_cardinality": 1,
+            "cumulative_rows_scanned": 0,
+            "operator_rows_scanned": 0,
+            "operator_timing": 0.000001,
+            "result_set_size": 48,
+            "total_bytes_read": 0,
+            "total_bytes_written": 0,
+            "children": [
+                {
+                    "cpu_time": 0.0000036000000000000003,
+                    "extra_info": {
+                        "Function": "PRAGMA_DATABASE_SIZE",
+                        "Estimated Cardinality": "1"
+                    },
+                    "cumulative_cardinality": 1,
+                    "operator_name": "PRAGMA_DATABASE_SIZE ",
+                    "operator_type": "TABLE_SCAN",
+                    "operator_cardinality": 1,
+                    "cumulative_rows_scanned": 0,
+                    "operator_rows_scanned": 0,
+                    "operator_timing": 0.0000036000000000000003,
+                    "result_set_size": 112,
+                    "total_bytes_read": 0,
+                    "total_bytes_written": 0,
+                    "children": []
+                }
+            ]
+        }
+    ]
+}
