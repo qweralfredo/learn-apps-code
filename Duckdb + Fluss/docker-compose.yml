@@ -1,0 +1,79 @@
+# Docker Compose para DuckDB + Fluss Micro-Lakehouse
+version: '3.8'
+
+services:
+  # FastAPI Application com DuckDB embarcado
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DUCKDB_PATH=/data/lakehouse.db
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/data
+      - ./app:/app
+    networks:
+      - lakehouse-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Jupyter Lab para análises ad-hoc
+  jupyter:
+    build:
+      context: ./jupyter
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/data
+    networks:
+      - lakehouse-net
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+
+  # Grafana para visualização
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - lakehouse-net
+    restart: unless-stopped
+
+  # Prometheus para métricas
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - lakehouse-net
+    restart: unless-stopped
+
+networks:
+  lakehouse-net:
+    driver: bridge
+
+volumes:
+  grafana-data:
+  prometheus-data:
